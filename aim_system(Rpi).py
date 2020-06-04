@@ -17,8 +17,8 @@ y_lock = 0
 
 IP = '192.168.50.11'
 
-colorUpper = (44, 255, 255)
-colorLower = (24, 100, 100)
+colorUpper = (180, 255, 255)
+colorLower = (155, 100, 100)
 
 ap = argparse.ArgumentParser() # unkwon code.
 ap.add_argument("-b", "--buffer", type=int, default=64,help="max buffer size")
@@ -27,12 +27,12 @@ pts = deque(maxlen=args["buffer"])
 
 camera = picamera.PiCamera() #init camera.
 camera.resolution = (640,480)
-camera.framerate = 20
+camera.framerate = 30
 rawCapture = PiRGBArray(camera, size=(640,480))
 
 context = zmq.Context() #init tcp transfer.
-footage_socket = context.socket(zmq.PAIR)
-footage_socket.connect('tcp://%s:5555'%IP)
+footage_socket = context.socket(zmq.PUB)
+footage_socket.bind("tcp://*:5555")
 
 for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
     frame_image = frame.array
@@ -76,7 +76,7 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
             print("locked!")
         else:
             print("detected but not locked?")
-    rawCapture.truncate(0) # reset cache, perpare for next frame_image.
+    rawCapture.truncate(0) # reset cache, perpare for next.
 
 
 

@@ -5,12 +5,12 @@ import zmq
 import base64
 import numpy as np
 
-
+Rpi_ip = '192.168.50.99'
 
 context = zmq.Context()
-footage_socket = context.socket(zmq.PAIR)
-footage_socket.bind('tcp://*:5555')
-
+footage_socket = context.socket(zmq.SUB)
+footage_socket.connect('tcp://%s:5555'%Rpi_ip)
+footage_socket.setsockopt(zmq.SUBSCRIBE,''.encode('utf-8'))  # 接收所有消息
 
 
 while True:

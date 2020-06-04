@@ -12,16 +12,17 @@ import numpy as np
 # 定义数据
 itor = 1
 X1 = 5  # 横坐标固定为5，只改变小球的高度
-X2 = 15  # 初始纵坐标
-XP = 10  # 预设的纵坐标
+X2 = 20  # 初始纵坐标
+XP = 5  # 预设的纵坐标
 v = 0    # 速度
 a = 0    # 加速度
  
-Kp = 0.2
-Kd = 0.2
+i=0
+Kp = 0.1
+Kd = 2
 Err1 = X2 - XP
 Err0 = 0
-Max_itor = 50000
+Max_itor = 60
 #
 plt.figure(figsize=(12, 8), dpi=100)
 plt.ion()
@@ -49,7 +50,9 @@ while itor < Max_itor:
                 label="PD Algorithm")
     plt.legend()  # 显示图例说明
     itor = itor + 1
-    plt.pause(0.2)
+    plt.pause(0.1)
+    plt.savefig('./test%d.png'%i)
+    i=i+1
  # 关闭交互模式
 plt.ioff()
 

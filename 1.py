@@ -51,7 +51,7 @@ while itor < Max_itor:
     plt.legend()  # 显示图例说明
     itor = itor + 1
     plt.pause(0.1)
-    plt.savefig('./test%d.png'%i)
+    #plt.savefig('./test%d.png'%i)
     i=i+1
  # 关闭交互模式
 plt.ioff()

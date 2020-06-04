@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 # Author: HarryJD@sina.com
 import matplotlib as mpl
-mpl.use('TkAgg')
 from matplotlib import pyplot as plt
 import numpy as np
  
@@ -26,8 +25,7 @@ Max_itor = 50000
 #
 plt.figure(figsize=(12, 8), dpi=100)
 plt.ion()
-
-
+ 
 while itor < Max_itor:
     # 清空旧的画布
     plt.cla()
@@ -51,5 +49,9 @@ while itor < Max_itor:
                 label="PD Algorithm")
     plt.legend()  # 显示图例说明
     itor = itor + 1
-    plt.ioff()
-    plt.show()
+    plt.pause(0.2)
+ # 关闭交互模式
+plt.ioff()
+
+# 图形显示
+plt.show()

@@ -10,15 +10,14 @@ tolerance = 17
 x_lock = 0
 y_lock = 0
 
-IP = '192.168.50.11'
-
 colorUpper = (200, 255, 255)
 colorLower = (155, 100, 100)
 #相机参数设置
 def Setcamera(cap):
     cap.set(6,cv2.VideoWriter.fourcc('M','J','P','G'))
-    cap.set(3,128)
-    cap.set(4,96)
+    cap.set(3,160) #128
+    cap.set(4,120) #96
+    cap.set(5,30)
 
 context = zmq.Context() #init tcp transfer.
 footage_socket = context.socket(zmq.PUB)
@@ -37,7 +36,7 @@ start_time = time.time()
 while(True):
     ret, frame_image = camera.read()
         
-#测帧率    
+    # 测帧率    
     counter += 1    
     if (time.time() - start_time) > t:
         fps = counter / (time.time() - start_time)
@@ -48,17 +47,14 @@ while(True):
 
 
     hsv = cv2.cvtColor(frame_image, cv2.COLOR_BGR2HSV)
-    #cv2.imshow('frame', hsv)
     mask = cv2.inRange(hsv, colorLower, colorUpper)
-    #cv2.imshow('frame', mask)
-    mask = cv2.erode(mask, None, iterations=2)
-    #cv2.imshow('frame', mask)
+    mask = cv2.erode(mask, None, iterations=2)    
     mask = cv2.dilate(mask,None,iterations=2)
 
     encoded, buffer = cv2.imencode('.jpg', frame_image) #sending frame_image.
     jpg_as_text = base64.b64encode(buffer)
     footage_socket.send(jpg_as_text)
-    #cv2.imshow('frame', mask)
+
     cnts = cv2.findContours(mask.copy(),cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
     if len(cnts)>0:
         c = max(cnts, key=cv2.contourArea)

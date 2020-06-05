@@ -2,12 +2,7 @@ import cv2
 import zmq
 import base64
 
-from picamera.array import PiRGBArray
 import time
-import picamera
-from picamera.array import PiRGBArray
-import argparse
-import imutils
 import numpy as np
 from collections import deque
  
@@ -15,36 +10,51 @@ tolerance = 17
 x_lock = 0
 y_lock = 0
 
-IP = '192.168.50.11'
-
-colorUpper = (44, 255, 255)
-colorLower = (24, 100, 100)
-
-ap = argparse.ArgumentParser() # unkwon code.
-ap.add_argument("-b", "--buffer", type=int, default=64,help="max buffer size")
-args = vars(ap.parse_args())
-pts = deque(maxlen=args["buffer"])
-
-camera = picamera.PiCamera() #init camera.
-camera.resolution = (640,480)
-camera.framerate = 20
-rawCapture = PiRGBArray(camera, size=(640,480))
+colorUpper = (200, 255, 255)
+colorLower = (155, 100, 100)
+#相机参数设置
+def Setcamera(cap):
+    cap.set(6,cv2.VideoWriter.fourcc('M','J','P','G'))
+    cap.set(3,160) #128
+    cap.set(4,120) #96
+    cap.set(5,30)
 
 context = zmq.Context() #init tcp transfer.
-footage_socket = context.socket(zmq.PAIR)
-footage_socket.connect('tcp://%s:5555'%IP)
+footage_socket = context.socket(zmq.PUB)
+footage_socket.bind("tcp://*:5555")
 
-for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
-    frame_image = frame.array
+camera = cv2.VideoCapture(0)
+Setcamera(camera)
+
+
+# 每0.1S计算一次帧率
+t = 0.1 
+counter = 0
+fps = 0
+start_time = time.time()
+
+while(True):
+    ret, frame_image = camera.read()
+        
+    # 测帧率    
+    counter += 1    
+    if (time.time() - start_time) > t:
+        fps = counter / (time.time() - start_time)
+        fps = str(fps)
+        counter = 0
+        start_time = time.time()       
+    cv2.putText(frame_image, "FPS {0}" .format(fps), (10, 30), 1, 1.5, (255, 0, 255), 2)
+
+
+    hsv = cv2.cvtColor(frame_image, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, colorLower, colorUpper)
+    mask = cv2.erode(mask, None, iterations=2)    
+    mask = cv2.dilate(mask,None,iterations=2)
 
     encoded, buffer = cv2.imencode('.jpg', frame_image) #sending frame_image.
     jpg_as_text = base64.b64encode(buffer)
     footage_socket.send(jpg_as_text)
 
-    hsv = cv2.cvtColor(frame_image, cv2.COLOR_BGR2HSV)
-    mask = cv2.inRange(hsv, colorLower, colorUpper)
-    mask = cv2.erode(mask, None, iterations=2)
-    mask = cv2.dilate(mask,None,iterations=2)
     cnts = cv2.findContours(mask.copy(),cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
     if len(cnts)>0:
         c = max(cnts, key=cv2.contourArea)
@@ -74,9 +84,9 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
 
         if x_lock ==1 and y_lock == 1:
             print("locked!")
+            break
         else:
             print("detected but not locked?")
-    rawCapture.truncate(0) # reset cache, perpare for next frame_image.
-
-
+    if cv2.waitKey(1) == ord('q'):
+        break
 

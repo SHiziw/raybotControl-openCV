@@ -30,6 +30,7 @@ footage_socket = context.socket(zmq.PUB) # zmq的广播模式
 footage_socket.bind("tcp://*:5555")
 
 # control 2 motor flags
+auto_tracer = False
 is_working = 0
 instant_shut = 0
 l_speed = 0
@@ -62,7 +63,7 @@ start_time = time.time()
 
 # visual servo control and frame transform powered by openCV.
 def visual_servo():
-    while(True):
+    while(auto_tracer):
         ret, frame_image = camera.read()
             
         # 测帧率    
@@ -73,7 +74,6 @@ def visual_servo():
             counter = 0
             start_time = time.time()       
         cv2.putText(frame_image, "FPS {0}" .format(fps), (10, 30), 1, 1.5, (255, 0, 255), 2)
-
 
         hsv = cv2.cvtColor(frame_image, cv2.COLOR_BGR2HSV)
         mask = cv2.inRange(hsv, colorLower, colorUpper)
@@ -118,43 +118,69 @@ def visual_servo():
                 print("detected but not locked?")
         if cv2.waitKey(1) == ord('q'):
             break
-
+            
 
 def tcplink(sock, addr):
+    auto_tracer = 1
     while True:
         try:
             # all data is in data:
-            data = sock.recv(1024)
+            data_buffer = []
+            while True:
+                # 每次最多接收16字节:
+                d = sock.recv(16)
+                if d:
+                    data_buffer.append(d)
+                else:
+                    break
+            data = b''.join(data_buffer)
             full_command = data.decode('utf-8')
-            head_command = full_command[0:5]
+            head_command = full_command[0:9]
             # if you want to change the data, change here above.
             if len(data) > 0:
                 print("Received:%s" % data.decode('utf-8'))
-                Motor.run_at_speed(head_command)
+                if head_command[0] == "A":
+                    #转到自动模式
+                    auto_tracer = True
+                    continue
+                elif head_command[0] == "M":
+                    auto_tracer = False
+                    Motor.run_at_speed(head_command)
+                    cmd_finished = data.decode('utf-8') + ' already has been executed.'
+                    sock.send(cmd_finished.encode('utf-8'))
+                elif head_command[0] == "Q":
+                    #退出连接，请检查还需要补充吗
+                    socket_tcp.close()
+                else:
+                    cmd_finished = data.decode('utf-8') + ' the data has been broken during transform!'
+                    sock.send(cmd_finished.encode('utf-8'))
+                '''
                 if full_command == 'stop':
                     sock.send(b'stop now.')
                     Motor.stop()
                 elif full_command == 'run':
                     sock.send(b'now running.')
                     Motor.runtest()
-                cmd_finished = data.decode('utf-8') + ' already has been executed.'
-                sock.send(cmd_finished.encode('utf-8'))
-                time.sleep(0.1)
-                continue
+                '''
         except KeyboardInterrupt :
+            auto_tracer = 0
             socket_tcp.close()
             sys.exit(1)
 
+#开启视觉伺服控制线程
+t2 = threading.Thread(name="Opencv_PID", target=visual_servo, args=None)
+t2.start()
 
-# 主循环
 while True:
     # 4.waite for client:connection,address=socket.accept(), 接受一个新连接:
-    socket_con, client_addr = socket_tcp.accept()
+    socket_con, client_addr = socket_tcp.accept() # blocked point！阻塞式！
     (client_ip, client_port) = client_addr
     print("Connection accepted from %s." % client_ip)
     socket_con.send(b"Welcome to RPi TCP server!")
-    t = threading.Thread(target=tcplink, args=(socket_con, client_addr))
-    t.start()
+    t1 = threading.Thread(name="TCP_control_thread", target=tcplink, args=(socket_con, client_addr))
+    
+    t1.start()
+
 
 
 

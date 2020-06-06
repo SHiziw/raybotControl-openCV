@@ -10,6 +10,8 @@ import time
 import sys
 import threading
 from MotorDriver import MotorDriver
+from RayPID import PID
+lock = threading.Lock()
 
 # define host ip: Rpi's IP
 HOST_IP = "127.0.0.1"
@@ -30,40 +32,62 @@ footage_socket = context.socket(zmq.PUB) # zmq的广播模式
 footage_socket.bind("tcp://*:5555")
 
 # control 2 motor flags
-auto_tracer = False
-is_working = 0
-instant_shut = 0
-l_speed = 0
-r_speed = 0
-Motor = MotorDriver(is_working, instant_shut)
+Motor = MotorDriver()
+#a PID controler.
+RPID = PID(1, 0.1, 0.1)
+#Globale variables
+l_speed = 100
+r_speed = 100
+global_message = ""
+auto_tracer = False # a controlable flag.
 
-# aim system init.
-tolerance = 17
-x_lock = 0
-y_lock = 0
-# target color.
-colorUpper = (200, 255, 255)
-colorLower = (155, 100, 100)
-#相机参数设置
-def Setcamera(cap):
-    cap.set(6,cv2.VideoWriter.fourcc('M','J','P','G'))
-    cap.set(3,160) #128
-    cap.set(4,120) #96
-    cap.set(5,30)
-
-# init camera
-camera = cv2.VideoCapture(0)
-Setcamera(camera)
-
-# 每0.1S计算一次帧率
-t = 0.1 
-counter = 0
-fps = 0
-start_time = time.time()
+def output_handle(output):
+    global l_speed
+    global r_speed
+    global global_message
+    if r == 100:
+        l_speed = l_speed + output
+        if l_speed>100:
+           r_speed = r_speed - (l_speed-100)
+           l_speed = 100
+    elif l_speed == 100:
+        r_speed = r_speed - output
+        if r_speed > 100:
+            l_speed = l_speed - (r_speed-100)
+            r_speed = 100
+    else:
+        print("wrong speed!")
+        global_message = "handle get wrong speed!"
+    Motor.MotorRun(1, 'forward', l_speed)
+    Motor.MotorRun(0, 'forward', r_speed)
 
 # visual servo control and frame transform powered by openCV.
 def visual_servo():
-    while(auto_tracer):
+    global auto_tracer
+    global global_message
+    # target color.
+    colorUpper = (200, 255, 255)
+    colorLower = (155, 100, 100)
+    frame_width = 160
+    frame_height = 120
+
+    #相机参数设置
+    def Setcamera(cap):
+        cap.set(6,cv2.VideoWriter.fourcc('M','J','P','G'))
+        cap.set(3,frame_width) #128
+        cap.set(4,frame_height) #96
+        cap.set(5,30)
+
+    # init camera
+    camera = cv2.VideoCapture(0)
+    Setcamera(camera)
+
+    # 每0.1S计算一次帧率
+    t = 0.1 
+    counter = 0
+    fps = 0
+    start_time = time.time()
+    while(True):
         ret, frame_image = camera.read()
             
         # 测帧率    
@@ -84,44 +108,26 @@ def visual_servo():
         jpg_as_text = base64.b64encode(buffer)
         footage_socket.send(jpg_as_text)
 
-        cnts = cv2.findContours(mask.copy(),cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
-        if len(cnts)>0:
-            c = max(cnts, key=cv2.contourArea)
-            ((X,Y), radius) = cv2.minEnclosingCircle(c)
+        while (auto_tracer):
+            cnts = cv2.findContours(mask.copy(),cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+            if len(cnts)>0:
+                c = max(cnts, key=cv2.contourArea)
+                ((X,Y), radius) = cv2.minEnclosingCircle(c)
 
-            if Y < (240-tolerance):
-                error = (240-Y)/5
-                print("up   (error:%d"%(error))
-                y_lock = 0
-            elif Y > (240+tolerance):
-                error = (Y-240)/5
-                print("down   (error:%d"%(error))
-                y_lock = 0
-            else:
-                y_lock = 1
+                delta_Y = Y - frame_height
+                delta_X = X - frame_width
+                RPID.update(delta_X)
+                output_handle(RPID.output)
+                print("trying to lock in center...")
+                global_message = "PID controler trying to lock in center..."
 
-            if X < (320-tolerance):
-                error = (320-X)/5
-                print("left   (error:%d"%(error))
-                x_lock = 0
-            elif X > (320+tolerance):
-                error = (X-320)/5
-                print("right   (error:%d"%(error))
-                x_lock = 0
-            else:
-                x_lock = 1
-
-            if x_lock ==1 and y_lock == 1:
-                print("locked!")
+            if cv2.waitKey(1) == ord('q'):
                 break
-            else:
-                print("detected but not locked?")
-        if cv2.waitKey(1) == ord('q'):
-            break
             
 
 def tcplink(sock, addr):
-    auto_tracer = 1
+    global auto_tracer
+    global global_message
     while True:
         try:
             # all data is in data:
@@ -142,28 +148,31 @@ def tcplink(sock, addr):
                 if head_command[0] == "A":
                     #转到自动模式
                     auto_tracer = True
-                    continue
+                    sock.send(b'now auto sailing.')
                 elif head_command[0] == "M":
                     auto_tracer = False
                     Motor.run_at_speed(head_command)
                     cmd_finished = data.decode('utf-8') + ' already has been executed.'
                     sock.send(cmd_finished.encode('utf-8'))
+                 elif head_command[0] == "S":
+                    Motor.stop()
+                    sock.send(b'now stopped.')
                 elif head_command[0] == "Q":
+                    Motor.stop()
                     #退出连接，请检查还需要补充吗
                     socket_tcp.close()
                 else:
                     cmd_finished = data.decode('utf-8') + ' the data has been broken during transform!'
                     sock.send(cmd_finished.encode('utf-8'))
-                '''
-                if full_command == 'stop':
-                    sock.send(b'stop now.')
-                    Motor.stop()
-                elif full_command == 'run':
-                    sock.send(b'now running.')
-                    Motor.runtest()
-                '''
+            if len(global_message) > 0:
+                lock.acquire()
+                sock.send(global_message.encode('utf-8'))
+                global_message = ""
+                lock.release()
+
+
         except KeyboardInterrupt :
-            auto_tracer = 0
+            auto_tracer = False
             socket_tcp.close()
             sys.exit(1)
 
@@ -180,7 +189,4 @@ while True:
     t1 = threading.Thread(name="TCP_control_thread", target=tcplink, args=(socket_con, client_addr))
     
     t1.start()
-
-
-
 

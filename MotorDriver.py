@@ -11,19 +11,29 @@ pwm = PCA9685(0x40, debug=False)
 pwm.setPWMFreq(800)
 
 class MotorDriver():
-    def __init__(self, is_working, instant_shut):
+    def __init__(self):
         self.PWMA = 0
         self.AIN1 = 1
         self.AIN2 = 2
         self.PWMB = 5
         self.BIN1 = 3
         self.BIN2 = 4
-        self.is_working = is_working
-        self.instant_shut = instant_shut
 
     def MotorRun(self, motor, index, speed):
         if speed > 100:
-            return
+            speed = 100
+        elif speed < 10:
+            if speed >-10:
+                speed = 0
+            elif speed >-100:
+                index = 'backward'
+                speed = -speed
+            else :
+                speed = 100
+                index = 'backward'
+        else:
+            pass
+
         if(motor == 0):
             pwm.setDutycycle(self.PWMA, speed)
             if(index == Dir[0]):
@@ -53,40 +63,45 @@ class MotorDriver():
         self.MotorStop(1)
 
 
-    def runtest(self, count=5):
-        n = 0
-        while n < count:
-            self.MotorRun(0, 'forward', 50)
-            time.sleep(2.0)
-            self.MotorRun(0, 'backward', 30)
-            time.sleep(3.0)
-            self.MotorStop(0)
-            self.MotorStop(1)
-            time.sleep(1.0)
-            n += 1
 
     def run_at_speed(self, head_command):
         # use head_command(recieve from client) to change the motor.
-        if head_command[0] in ['r', 'R']:
-            mtr = 0
-        elif  head_command[0] in ['l', 'L']:
-            mtr = 1
+        if head_command[0] in ['M', 'm']:
+            pass
+        elif  head_command[0] in ['A', 'a']:
+            # 自动模式！
+            print("error in mode!")
         else:
             return
+
         if head_command[1] in ['f', 'F']:
-            idx = 'forward'
+            left_idx = 'forward'
         elif  head_command[1] in ['b', 'B']:
-            idx = 'backward'
+            left_idx = 'backward'
+        else: 
+            return
+        if head_command[5] in ['f', 'F']:
+            right_idx = 'forward'
+        elif  head_command[5] in ['b', 'B']:
+            right_idx = 'backward'
         else: 
             return
 
-        spd = int(head_command[2:5])
-        if spd <= 100:
-            if spd >= 0:
-                self.MotorRun(mtr, idx, spd)
+        left_spd = int(head_command[2:5])
+        if left_spd <= 100:
+            if left_spd >= 0:
+                self.MotorRun(1, left_idx, left_spd)
             else:
                 return
         else:
             return
 
+        right_spd = int(head_command[6:9])
+        if right_spd <= 100:
+            if right_spd >= 0:
+                self.MotorRun(0, right_idx, right_spd)
+            else:
+                return
+        else:
+            return
         

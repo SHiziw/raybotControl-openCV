@@ -154,12 +154,13 @@ def tcplink(sock, addr):
                     Motor.run_at_speed(head_command)
                     cmd_finished = data.decode('utf-8') + ' already has been executed.'
                     sock.send(cmd_finished.encode('utf-8'))
-                 elif head_command[0] == "S":
+                elif head_command[0] == "S":
                     Motor.stop()
                     sock.send(b'now stopped.')
                 elif head_command[0] == "Q":
                     Motor.stop()
                     #退出连接，请检查还需要补充吗
+                    auto_tracer = False
                     socket_tcp.close()
                 else:
                     cmd_finished = data.decode('utf-8') + ' the data has been broken during transform!'
@@ -169,7 +170,6 @@ def tcplink(sock, addr):
                 sock.send(global_message.encode('utf-8'))
                 global_message = ""
                 lock.release()
-
 
         except KeyboardInterrupt :
             auto_tracer = False

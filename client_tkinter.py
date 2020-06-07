@@ -181,7 +181,8 @@ botton_close = tk.Button(botton_frame, text='断开连接', font=('黑体', 12),
 botton_auto = tk.Button(botton_frame, text='自动模式', font=('黑体', 12), width=10, height=1, command=command_auto)
 
 botton_estabilish.pack(side="left")
-botton_close.pack()
+botton_close.pack(side="left")
+botton_auto.pack()
 l = tk.Label(root, width=10, height=1, text=" ")
 l.pack()
 

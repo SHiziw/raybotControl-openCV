@@ -1,0 +1,258 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import socket
+import time
+import sys
+import threading
+import tkinter as tk
+#RPi's IP
+SERVER_IP = "192.168.50.99"
+SERVER_PORT = 1811
+# waiting for a recieve from server.
+command_ready = True
+is_conneted = False
+l_command = "0"
+l_command_old = "0" 
+r_command = "0"
+r_command_old = "0" 
+
+print("Starting socket: TCP...")
+server_addr = (SERVER_IP, SERVER_PORT)
+socket_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+
+def read_from_server(socket_tcp, server_addr):
+    global command_ready
+    while True:
+        try:
+            print ("imwork!reading")
+            data_buffer = []
+            while True:
+                # 每次最多接收16字节:
+                d = socket_tcp.recv(1024)
+                if d:
+                    data_buffer.append(d)
+                else:
+                    break
+            data = b''.join(data_buffer)
+            full_command = data.decode('utf-8')
+            if len(data)>0:
+                # decode as utf-8
+                print("Received: %s" % data.decode('utf-8'))
+                command_ready = True
+            continue
+        except KeyboardInterrupt:
+            socket_tcp.close()
+            socket_tcp=None
+            sys.exit(1)
+
+def send_commands(socket_tcp, server_addr):
+    global command_ready
+    global l_command
+    global l_command_old
+    global r_command
+    global r_command_old
+    while True:
+        try:
+            if l_command != l_command_old: 
+                transl = "M"+standard_command(l_command)+standard_command(r_command)
+                # encode to ascii
+                socket_tcp.send(transl.encode('utf-8')) 
+                l_command_old = l_command
+            if r_command != r_command_old: 
+                transr = "M"+standard_command(l_command)+standard_command(r_command)
+                # encode to ascii
+                socket_tcp.send(transr.encode('utf-8')) 
+                r_command_old = r_command
+             
+        except KeyboardInterrupt:
+            socket_tcp.close()
+            socket_tcp=None
+            sys.exit(1)
+
+def sync_command():
+    global is_conneted
+    if is_conneted == False:
+        connection_status.set('trying to connect Raybot3...')
+    else:
+        connection_status.set('Raybot3 online!')
+    left_subtitle.configure(text=str(left_speed.get()))
+    right_subtitle.configure(text=str(right_speed.get())) 
+    root.after(30,sync_command)   # 每隔1s调用函数 gettime 自身获取时间
+def show(event):
+    s = '左侧的取值为' + str(left_speed.get())
+    global l_command
+    #print("---------------------------")
+    l_command = str(left_speed.get())
+   # print(command)
+   # print("---------------------------")
+    left_label.config(text=s)
+def showR(event):
+    s = '右侧的取值为' + str(right_speed.get())
+    global r_command
+    #print("---------------------------")
+    r_command = str(right_speed.get())
+   # print(command)
+   # print("---------------------------")
+    right_label.config(text=s)
+def standard_command(command):
+    cmd = float(command)
+    print("cmd is "+str(cmd))
+    if cmd <10.0 and cmd>-10.0:
+        return "f000"
+    elif cmd == 100.0:
+        return "f100"
+    elif cmd == -100.0:
+        return "b100"
+    elif cmd<0.0:
+        return "b"+"0"+str(-1*cmd)[0:2]
+    elif cmd>0.0:
+        return "f"+"0"+str(cmd)[0:2]
+    else: return "f000"
+
+def close_tcplink():
+    global is_conneted
+    socket_tcp.close()
+    is_conneted = False
+
+def establish_connection(SERVER_IP, SERVER_PORT):
+    global is_conneted
+    while True:
+        try:
+            print("Connecting to server @ %s:%d..." %(SERVER_IP, SERVER_PORT))
+            socket_tcp.connect(server_addr)
+            is_conneted = True
+            break
+        except Exception:
+            print("Can't connect to server,try it latter!")
+            time.sleep(1)
+            continue
+    print("Please tell me what should I do with commands!")
+    t1 = threading.Thread(target=read_from_server, args=(socket_tcp, server_addr))
+    t1.start()
+    t2 = threading.Thread(target=send_commands, args=(socket_tcp, server_addr))
+    t2.start()
+
+def backgroud_establish():
+    t0 = threading.Thread(target=establish_connection, args=(SERVER_IP, SERVER_PORT))
+    t0.start()
+
+def command_up():
+    socket_tcp.send(b'MF100F100') 
+def command_down():
+    socket_tcp.send(b'MB100B100') 
+def command_left():
+    socket_tcp.send(b'MB100F100')
+def command_right():
+    socket_tcp.send(b'MF100B100')
+def command_stop():
+    socket_tcp.send(b'MF000F000')
+def command_auto():
+    socket_tcp.send(b'AF100F100')
+counter = 0
+def do_job():
+    global counter
+    l.config(text='do '+ str(counter))
+    counter += 1
+
+root= tk.Tk()
+root.title('RB3tcp控制端')
+root.geometry('480x800') # 这里的乘号不是 * ，而是小写英文字母 x
+
+connection_status = tk.StringVar()
+l = tk.Label(root, textvariable=connection_status)
+l.pack()
+
+def hit_me():
+    global is_conneted
+    if is_conneted == False:
+        backgroud_establish()
+    else:
+        connection_status.set('Raybot3 is online!')
+
+botton_frame = tk.Frame(root)
+botton_frame.pack()
+botton_estabilish = tk.Button(botton_frame, text='建立连接', font=('黑体', 12), width=10, height=1, command=hit_me)
+botton_close = tk.Button(botton_frame, text='断开连接', font=('黑体', 12), width=10, height=1, command=close_tcplink)
+botton_auto = tk.Button(botton_frame, text='自动模式', font=('黑体', 12), width=10, height=1, command=command_auto)
+
+botton_estabilish.pack(side="left")
+botton_close.pack()
+l = tk.Label(root, width=10, height=1, text=" ")
+l.pack()
+
+arrow_frame = tk.Frame(root)
+arrow_frame.pack()
+arrow_frame0 = tk.Frame(arrow_frame)
+arrow_frame1 = tk.Frame(arrow_frame)
+arrow_frame2 = tk.Frame(arrow_frame)
+arrow_frame0.pack(side="left")
+arrow_frame1.pack(side="left")
+arrow_frame2.pack(side="right")
+img_left = tk.PhotoImage(file='left.png') 
+arrow_left = tk.Button(arrow_frame0, image=img_left, command=command_left).pack(side="left")
+img_up = tk.PhotoImage(file='up.png') 
+arrow_up = tk.Button(arrow_frame1, image=img_up, command=command_up).pack()
+img_stop = tk.PhotoImage(file='stop.png') 
+arrow_stop = tk.Button(arrow_frame1, image=img_stop, command=command_stop).pack()
+img_down = tk.PhotoImage(file='down.png') 
+arrow_dowm = tk.Button(arrow_frame1, image=img_down, command=command_down).pack()
+img_right = tk.PhotoImage(file='right.png') 
+arrow_right = tk.Button(arrow_frame2, image=img_right, command=command_right).pack(side="right")
+
+l = tk.Label(root, width=10, height=4, text=" ")
+l.pack()
+ # 建立菜单栏
+menubar = tk.Menu(root)
+filemenu = tk.Menu(menubar, tearoff=0)
+menubar.add_cascade(label='File', menu=filemenu)
+filemenu.add_command(label='New', command=do_job)
+filemenu.add_command(label='Open', command=do_job)
+filemenu.add_command(label='Save', command=do_job)
+filemenu.add_separator()    # 添加一条分隔线
+filemenu.add_command(label='Exit', command=root.quit) # 用tkinter里面自带的quit()函数
+# 第7步，创建一个Edit菜单项（默认不下拉，下拉内容包括Cut，Copy，Paste功能项）
+editmenu = tk.Menu(menubar, tearoff=0)
+# 将上面定义的空菜单命名为 Edit，放在菜单栏中，就是装入那个容器中
+menubar.add_cascade(label='Edit', menu=editmenu)
+# 同样的在 Edit 中加入Cut、Copy、Paste等小命令功能单元，如果点击这些单元, 就会触发do_job的功能
+editmenu.add_command(label='Cut', command=do_job)
+editmenu.add_command(label='Copy', command=do_job)
+editmenu.add_command(label='Paste', command=do_job)
+# 第8步，创建第二级菜单，即菜单项里面的菜单
+submenu = tk.Menu(filemenu) # 和上面定义菜单一样，不过此处实在File上创建一个空的菜单
+filemenu.add_cascade(label='Import', menu=submenu, underline=0) # 给放入的菜单submenu命名为Import
+# 第9步，创建第三级菜单命令，即菜单项里面的菜单项里面的菜单命令（有点拗口，笑~~~）
+submenu.add_command(label='Submenu_1', command=do_job)   # 这里和上面创建原理也一样，在Import菜单项中加入一个小菜单命令Submenu_1
+
+left_label = tk.Label(root,text='左侧精确调速',anchor="w", font=('黑体',14),\
+        width=30,\
+        height=1)
+
+left_speed=tk.DoubleVar()
+left_slider = tk.Scale(root,orient=tk.HORIZONTAL,length=300,from_=-100,to=100,tickinterval=-20,resolution=1,variable=left_speed)
+left_slider.bind('<ButtonRelease-1>',show)
+
+left_subtitle = tk.Label(root,text="left_speed.get()")
+
+right_label = tk.Label(root,text='右侧精确调速', anchor="w", font=('黑体',14),\
+        width=30,\
+        height=1)
+
+right_speed=tk.DoubleVar()
+right_slider = tk.Scale(root,orient=tk.HORIZONTAL,length=300,from_=-100,to=100,tickinterval=-20,resolution=1,variable=right_speed)
+right_slider.bind('<ButtonRelease-1>',showR)
+
+right_subtitle = tk.Label(root,text="right_speed.get()")
+
+left_label.pack()
+left_slider.pack()
+left_subtitle.pack()
+right_label.pack()
+right_slider.pack()
+right_subtitle.pack()
+
+root.config(menu=menubar)
+sync_command()
+root.mainloop() #阻塞，除非窗口关闭

@@ -176,14 +176,14 @@ def hit_me():
 
 botton_frame = tk.Frame(root)
 botton_frame.pack()
-botton_estabilish = tk.Button(botton_frame, text='建立连接', font=('黑体', 12), width=10, height=1, command=hit_me)
-botton_close = tk.Button(botton_frame, text='断开连接', font=('黑体', 12), width=10, height=1, command=close_tcplink)
-botton_auto = tk.Button(botton_frame, text='自动模式', font=('黑体', 12), width=10, height=1, command=command_auto)
+botton_estabilish = tk.Button(botton_frame, text='建立连接', font=('黑体', 6), width=10, height=1, command=hit_me)
+botton_close = tk.Button(botton_frame, text='断开连接', font=('黑体', 6), width=10, height=1, command=close_tcplink)
+botton_auto = tk.Button(botton_frame, text='自动模式', font=('黑体', 6), width=10, height=1, command=command_auto)
 
 botton_estabilish.pack(side="left")
 botton_close.pack(side="left")
 botton_auto.pack()
-l = tk.Label(root, width=10, height=1, text=" ")
+l = tk.Label(root, width=10, height=8, text=" ")
 l.pack()
 
 arrow_frame = tk.Frame(root)
@@ -195,17 +195,17 @@ arrow_frame0.pack(side="left")
 arrow_frame1.pack(side="left")
 arrow_frame2.pack(side="right")
 img_left = tk.PhotoImage(file='left.png') 
-arrow_left = tk.Button(arrow_frame0, image=img_left, command=command_left).pack(side="left")
+arrow_left = tk.Button(arrow_frame0, image=img_left, width = 80,height=80, command=command_left).pack(side="left")
 img_up = tk.PhotoImage(file='up.png') 
-arrow_up = tk.Button(arrow_frame1, image=img_up, command=command_up).pack()
+arrow_up = tk.Button(arrow_frame1, image=img_up,width = 80,height=80,  command=command_up).pack()
 img_stop = tk.PhotoImage(file='stop.png') 
-arrow_stop = tk.Button(arrow_frame1, image=img_stop, command=command_stop).pack()
+arrow_stop = tk.Button(arrow_frame1, image=img_stop,width = 80,height=80,  command=command_stop).pack()
 img_down = tk.PhotoImage(file='down.png') 
-arrow_dowm = tk.Button(arrow_frame1, image=img_down, command=command_down).pack()
+arrow_dowm = tk.Button(arrow_frame1, image=img_down,width = 80,height=80,  command=command_down).pack()
 img_right = tk.PhotoImage(file='right.png') 
-arrow_right = tk.Button(arrow_frame2, image=img_right, command=command_right).pack(side="right")
+arrow_right = tk.Button(arrow_frame2, image=img_right,width = 80,height=80,  command=command_right).pack(side="right")
 
-l = tk.Label(root, width=10, height=4, text=" ")
+l = tk.Label(root, width=10, height=2, text=" ")
 l.pack()
 
  # 建立菜单栏
@@ -231,22 +231,22 @@ filemenu.add_cascade(label='Import', menu=submenu, underline=0) # 给放入的�
 # 第9步，创建第三级菜单命令，即菜单项里面的菜单项里面的菜单命令（有点拗口，笑~~~）
 submenu.add_command(label='Submenu_1', command=do_job)   # 这里和上面创建原理也一样，在Import菜单项中加入一个小菜单命令Submenu_1
 
-left_label = tk.Label(root,text='左侧精确调速',anchor="w", font=('黑体',14),\
+left_label = tk.Label(root,text='左侧精确调速',anchor="w", font=('黑体',6),\
         width=30,\
         height=1)
 
 left_speed=tk.DoubleVar()
-left_slider = tk.Scale(root,orient=tk.HORIZONTAL,length=300,from_=-100,to=100,tickinterval=-20,resolution=1,variable=left_speed)
+left_slider = tk.Scale(root,orient=tk.HORIZONTAL,length=450,from_=-100,to=100, font=('黑体',6),tickinterval=-25,resolution=1,variable=left_speed)
 left_slider.bind('<ButtonRelease-1>',show)
 
 left_subtitle = tk.Label(root,text="left_speed.get()")
 
-right_label = tk.Label(root,text='右侧精确调速', anchor="w", font=('黑体',14),\
+right_label = tk.Label(root,text='右侧精确调速', anchor="w", font=('黑体',6),\
         width=30,\
         height=1)
 
 right_speed=tk.DoubleVar()
-right_slider = tk.Scale(root,orient=tk.HORIZONTAL,length=300,from_=-100,to=100,tickinterval=-20,resolution=1,variable=right_speed)
+right_slider = tk.Scale(root,orient=tk.HORIZONTAL,length=450,from_=-100,to=100,font=('黑体',6),tickinterval=-25,resolution=1,variable=right_speed)
 right_slider.bind('<ButtonRelease-1>',showR)
 
 right_subtitle = tk.Label(root,text="right_speed.get()")

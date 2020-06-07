@@ -10,8 +10,8 @@ import tkinter as tk
 SERVER_IP = "192.168.50.99"
 SERVER_PORT = 1811
 # waiting for a recieve from server.
-command_ready = True
 is_conneted = False
+received_data = "no data received..."
 l_command = "0"
 l_command_old = "0" 
 r_command = "0"
@@ -23,7 +23,7 @@ socket_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 
 def read_from_server(socket_tcp, server_addr):
-    global command_ready
+    global received_data
     while True:
         try:
             print ("imwork!reading")
@@ -39,16 +39,16 @@ def read_from_server(socket_tcp, server_addr):
             full_command = data.decode('utf-8')
             if len(data)>0:
                 # decode as utf-8
-                print("Received: %s" % data.decode('utf-8'))
-                command_ready = True
+                received_data = data.decode('utf-8')
+                print("Received: %s" % received_data)
             continue
         except KeyboardInterrupt:
+            is_conneted = False
             socket_tcp.close()
             socket_tcp=None
             sys.exit(1)
 
 def send_commands(socket_tcp, server_addr):
-    global command_ready
     global l_command
     global l_command_old
     global r_command
@@ -67,12 +67,15 @@ def send_commands(socket_tcp, server_addr):
                 r_command_old = r_command
              
         except KeyboardInterrupt:
+            is_conneted = False
             socket_tcp.close()
             socket_tcp=None
             sys.exit(1)
 
 def sync_command():
+    global received_data
     global is_conneted
+    data_from_raybot3.set(received_data)
     if is_conneted == False:
         connection_status.set('trying to connect Raybot3...')
     else:
@@ -203,6 +206,7 @@ arrow_right = tk.Button(arrow_frame2, image=img_right, command=command_right).pa
 
 l = tk.Label(root, width=10, height=4, text=" ")
 l.pack()
+
  # 建立菜单栏
 menubar = tk.Menu(root)
 filemenu = tk.Menu(menubar, tearoff=0)
@@ -252,6 +256,10 @@ left_subtitle.pack()
 right_label.pack()
 right_slider.pack()
 right_subtitle.pack()
+
+data_from_raybot3 = tk.StringVar()
+show_TCP_msg = tk.Label(root, textvariable=data_from_raybot3)
+show_TCP_msg.pack()
 
 root.config(menu=menubar)
 sync_command()

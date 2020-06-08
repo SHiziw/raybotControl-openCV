@@ -7,7 +7,7 @@ import sys
 import threading
 import tkinter as tk
 #RPi's IP
-SERVER_IP = "192.168.50.99"
+SERVER_IP = "192.168.43.247"
 SERVER_PORT = 1811
 # waiting for a recieve from server.
 is_conneted = False
@@ -185,7 +185,7 @@ botton_auto = tk.Button(botton_frame, text='自动模式', font=('黑体', 6), w
 botton_estabilish.pack(side="left")
 botton_close.pack(side="left")
 botton_auto.pack()
-l = tk.Label(root, width=10, height=8, text=" ")
+l = tk.Label(root, width=10, height=12, text=" ")
 l.pack()
 
 arrow_frame = tk.Frame(root)
@@ -197,15 +197,15 @@ arrow_frame0.pack(side="left")
 arrow_frame1.pack(side="left")
 arrow_frame2.pack(side="right")
 img_left = tk.PhotoImage(file='left.png') 
-arrow_left = tk.Button(arrow_frame0, image=img_left, width = 80,height=80, command=command_left).pack(side="left")
+arrow_left = tk.Button(arrow_frame0, image=img_left, width = 120,height=120, command=command_left).pack(side="left")
 img_up = tk.PhotoImage(file='up.png') 
-arrow_up = tk.Button(arrow_frame1, image=img_up,width = 80,height=80,  command=command_up).pack()
+arrow_up = tk.Button(arrow_frame1, image=img_up,width = 120,height=120,  command=command_up).pack()
 img_stop = tk.PhotoImage(file='stop.png') 
-arrow_stop = tk.Button(arrow_frame1, image=img_stop,width = 80,height=80,  command=command_stop).pack()
+arrow_stop = tk.Button(arrow_frame1, image=img_stop,width = 120,height=120,  command=command_stop).pack()
 img_down = tk.PhotoImage(file='down.png') 
-arrow_dowm = tk.Button(arrow_frame1, image=img_down,width = 80,height=80,  command=command_down).pack()
+arrow_dowm = tk.Button(arrow_frame1, image=img_down,width = 120,height=120,  command=command_down).pack()
 img_right = tk.PhotoImage(file='right.png') 
-arrow_right = tk.Button(arrow_frame2, image=img_right,width = 80,height=80,  command=command_right).pack(side="right")
+arrow_right = tk.Button(arrow_frame2, image=img_right,width = 120,height=120,  command=command_right).pack(side="right")
 
 l = tk.Label(root, width=10, height=2, text=" ")
 l.pack()
@@ -238,7 +238,7 @@ left_label = tk.Label(root,text='左侧精确调速',anchor="w", font=('黑体',
         height=1)
 
 left_speed=tk.DoubleVar()
-left_slider = tk.Scale(root,orient=tk.HORIZONTAL,length=450,from_=-100,to=100, font=('黑体',6),tickinterval=-25,resolution=1,variable=left_speed)
+left_slider = tk.Scale(root,orient=tk.HORIZONTAL,length=750,sliderlength=120,width=50,from_=-100,to=100, font=('黑体',6),tickinterval=25,resolution=1,variable=left_speed)
 left_slider.bind('<ButtonRelease-1>',show)
 
 left_subtitle = tk.Label(root,text="left_speed.get()")
@@ -248,7 +248,7 @@ right_label = tk.Label(root,text='右侧精确调速', anchor="w", font=('黑体
         height=1)
 
 right_speed=tk.DoubleVar()
-right_slider = tk.Scale(root,orient=tk.HORIZONTAL,length=450,from_=-100,to=100,font=('黑体',6),tickinterval=-25,resolution=1,variable=right_speed)
+right_slider = tk.Scale(root,orient=tk.HORIZONTAL,length=750,width=50,from_=-100,to=100,font=('黑体',6),sliderlength=120,tickinterval=25,resolution=1,variable=right_speed)
 right_slider.bind('<ButtonRelease-1>',showR)
 
 right_subtitle = tk.Label(root,text="right_speed.get()")

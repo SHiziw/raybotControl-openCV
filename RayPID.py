@@ -16,13 +16,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# title           :PID.py
+# title           :RayPID.py
 # description     :python pid controller
-# author          :Caner Durmusoglu
-# date            :20151218
-# version         :0.1
+# author          :Caner Durmusoglu and Vic Lee
+# date            :20200608
+# version         :0.2
 # notes           :
-# python_version  :2.7
+# python_version  :3.7
 # ==============================================================================
 
 import time

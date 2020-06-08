@@ -109,9 +109,7 @@ def command_left():
 def command_right():
     socket_tcp.send(b'MF100B100')
 def command_stop():
-    print("stop")
     socket_tcp.send(b'MF000F000')
-    print("stoped")
 def command_auto():
     socket_tcp.send(b'AF100F100')
 

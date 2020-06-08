@@ -45,7 +45,7 @@ def output_handle(output):
     global l_speed
     global r_speed
     global global_message
-    if r == 100:
+    if r_speed == 100:
         l_speed = l_speed + output
         if l_speed>100:
            r_speed = r_speed - (l_speed-100)
@@ -108,7 +108,7 @@ def visual_servo():
         jpg_as_text = base64.b64encode(buffer)
         footage_socket.send(jpg_as_text)
 
-        while (auto_tracer):
+        if (auto_tracer):
             cnts = cv2.findContours(mask.copy(),cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
             if len(cnts)>0:
                 c = max(cnts, key=cv2.contourArea)
@@ -118,7 +118,7 @@ def visual_servo():
                 delta_X = X - frame_width
                 RPID.update(delta_X)
                 output_handle(RPID.output)
-                print("trying to lock in center...")
+                print("l: {0}, r:{1}".format(l_speed, r_speed))
                 global_message = "PID controler trying to lock in center..."
 
             if cv2.waitKey(1) == ord('q'):
@@ -139,6 +139,8 @@ def tcplink(sock, addr):
                 print("Received:%s" % data.decode('utf-8'))
                 if head_command[0] == "A":
                     #转到自动模式
+                    Motor.MotorRun(1, 'forward', l_speed)
+                    Motor.MotorRun(0, 'forward', r_speed)
                     auto_tracer = True
                     sock.send(b'now auto sailing.')
                 elif head_command[0] == "M":

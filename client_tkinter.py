@@ -16,61 +16,104 @@ l_command = "0"
 l_command_old = "0" 
 r_command = "0"
 r_command_old = "0" 
+socket_tcp = None
 
-print("Starting socket: TCP...")
-server_addr = (SERVER_IP, SERVER_PORT)
-socket_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-
-def read_from_server(socket_tcp, server_addr):
+def read_from_server(socket1, server_addr):
+    global is_conneted
     global received_data
-    while True:
+    while is_conneted:
         try:
-            print ("imwork!reading")
-            data_buffer = []
-            while True:
-                # 每次最多接收16字节:
-                d = socket_tcp.recv(1024)
-                if d:
-                    data_buffer.append(d)
-                else:
-                    break
-            data = b''.join(data_buffer)
+            data = socket1.recv(1024)
             full_command = data.decode('utf-8')
             if len(data)>0:
                 # decode as utf-8
                 received_data = data.decode('utf-8')
                 print("Received: %s" % received_data)
             continue
-        except KeyboardInterrupt:
+        except Exception:
             is_conneted = False
-            socket_tcp.close()
-            socket_tcp=None
-            sys.exit(1)
+            socket1.close()
+            socke1t=None
 
-def send_commands(socket_tcp, server_addr):
+def send_commands(socket1, server_addr):
     global l_command
     global l_command_old
     global r_command
     global r_command_old
-    while True:
+    global is_conneted
+    while is_conneted:
         try:
             if l_command != l_command_old: 
                 transl = "M"+standard_command(l_command)+standard_command(r_command)
                 # encode to ascii
-                socket_tcp.send(transl.encode('utf-8')) 
+                socket1.send(transl.encode('utf-8')) 
                 l_command_old = l_command
             if r_command != r_command_old: 
                 transr = "M"+standard_command(l_command)+standard_command(r_command)
                 # encode to ascii
-                socket_tcp.send(transr.encode('utf-8')) 
+                socket1.send(transr.encode('utf-8')) 
                 r_command_old = r_command
              
         except KeyboardInterrupt:
             is_conneted = False
-            socket_tcp.close()
-            socket_tcp=None
-            sys.exit(1)
+            socket1.close()
+            socket1=None
+
+def close_tcplink():
+    global is_conneted
+    global received_data
+    is_conneted = False
+    socket_tcp.send(b'QB100B100') 
+    received_data = "  "
+    socket_tcp.close()
+    print("socket closed!")
+
+def establish_connection(socket1, server_addr, SERVER_IP, SERVER_PORT):
+    global is_conneted
+    global socket_tcp
+    started_time = time.time()
+    while True:
+        try:
+            now_time = time.time()
+            if now_time - started_time > 10:
+                print("time out...")
+                return
+            print("Connecting to server @ %s:%d..." %(SERVER_IP, SERVER_PORT))
+            socket1.connect(server_addr)
+            is_conneted = True
+            break
+        except Exception:
+            print("Can't connect to server,try it latter!")
+            time.sleep(1)
+            continue
+    print("Please tell me what should I do with commands!")
+    socket_tcp = socket1
+    t1 = threading.Thread(name="reader",target=read_from_server, args=(socket1, server_addr))
+    t1.start()
+    t2 = threading.Thread(name="sender",target=send_commands, args=(socket1, server_addr))
+    t2.start()
+
+def backgroud_establish():
+    print("Starting socket: TCP...")
+    server_addr = (SERVER_IP, SERVER_PORT)
+    socket1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    t0 = threading.Thread(name="connecting", target=establish_connection, args=(socket1, server_addr, SERVER_IP, SERVER_PORT))
+    t0.start()
+
+def command_up():
+    socket_tcp.send(b'MF100F100') 
+def command_down():
+    socket_tcp.send(b'MB100B100') 
+def command_left():
+    socket_tcp.send(b'MB100F100')
+def command_right():
+    socket_tcp.send(b'MF100B100')
+def command_stop():
+    print("stop")
+    socket_tcp.send(b'MF000F000')
+    print("stoped")
+def command_auto():
+    socket_tcp.send(b'AF100F100')
 
 def sync_command():
     global received_data
@@ -114,45 +157,6 @@ def standard_command(command):
         return "f"+"0"+str(cmd)[0:2]
     else: return "f000"
 
-def close_tcplink():
-    global is_conneted
-    socket_tcp.close()
-    is_conneted = False
-
-def establish_connection(SERVER_IP, SERVER_PORT):
-    global is_conneted
-    while True:
-        try:
-            print("Connecting to server @ %s:%d..." %(SERVER_IP, SERVER_PORT))
-            socket_tcp.connect(server_addr)
-            is_conneted = True
-            break
-        except Exception:
-            print("Can't connect to server,try it latter!")
-            time.sleep(1)
-            continue
-    print("Please tell me what should I do with commands!")
-    t1 = threading.Thread(target=read_from_server, args=(socket_tcp, server_addr))
-    t1.start()
-    t2 = threading.Thread(target=send_commands, args=(socket_tcp, server_addr))
-    t2.start()
-
-def backgroud_establish():
-    t0 = threading.Thread(target=establish_connection, args=(SERVER_IP, SERVER_PORT))
-    t0.start()
-
-def command_up():
-    socket_tcp.send(b'MF100F100') 
-def command_down():
-    socket_tcp.send(b'MB100B100') 
-def command_left():
-    socket_tcp.send(b'MB100F100')
-def command_right():
-    socket_tcp.send(b'MF100B100')
-def command_stop():
-    socket_tcp.send(b'MF000F000')
-def command_auto():
-    socket_tcp.send(b'AF100F100')
 counter = 0
 def do_job():
     global counter

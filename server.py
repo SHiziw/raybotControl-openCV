@@ -13,8 +13,8 @@ from MotorDriver import MotorDriver
 from RayPID import PID
 lock = threading.Lock()
 
-# define host ip: Rpi's IP
-HOST_IP = "127.0.0.1"
+# define host ip: Rpi's IP, if you want to use frp, you should set IP to 127.0.0.1
+HOST_IP = "192.168.50.99"
 HOST_PORT = 1811
 print("Starting socket: TCP...")
 # 1.create socket object:socket=socket.socket(family,type)
@@ -131,15 +131,7 @@ def tcplink(sock, addr):
     while True:
         try:
             # all data is in data:
-            data_buffer = []
-            while True:
-                # 每次最多接收16字节:
-                d = sock.recv(16)
-                if d:
-                    data_buffer.append(d)
-                else:
-                    break
-            data = b''.join(data_buffer)
+            data = sock.recv(16)
             full_command = data.decode('utf-8')
             head_command = full_command[0:9]
             # if you want to change the data, change here above.
@@ -161,7 +153,7 @@ def tcplink(sock, addr):
                     Motor.stop()
                     #退出连接，请检查还需要补充吗
                     auto_tracer = False
-                    socket_tcp.close()
+                    sock.close()
                 else:
                     cmd_finished = data.decode('utf-8') + ' the data has been broken during transform!'
                     sock.send(cmd_finished.encode('utf-8'))
@@ -171,22 +163,26 @@ def tcplink(sock, addr):
                 global_message = ""
                 lock.release()
 
-        except KeyboardInterrupt :
+        except Exception :
+            print("tcp connect closed.")
             auto_tracer = False
-            socket_tcp.close()
-            sys.exit(1)
+            sock.close()
+            break
 
 #开启视觉伺服控制线程
-t2 = threading.Thread(name="Opencv_PID", target=visual_servo, args=None)
+t2 = threading.Thread(name="Opencv_PID", target=visual_servo)
 t2.start()
 
 while True:
-    # 4.waite for client:connection,address=socket.accept(), 接受一个新连接:
-    socket_con, client_addr = socket_tcp.accept() # blocked point！阻塞式！
-    (client_ip, client_port) = client_addr
-    print("Connection accepted from %s." % client_ip)
-    socket_con.send(b"Welcome to RPi TCP server!")
-    t1 = threading.Thread(name="TCP_control_thread", target=tcplink, args=(socket_con, client_addr))
-    
-    t1.start()
-
+    try:
+        # 4.waite for client:connection,address=socket.accept(), 接受一个新连接:
+        socket_con, client_addr = socket_tcp.accept() # blocked point！阻塞式！
+        (client_ip, client_port) = client_addr
+        print("Connection accepted from %s." % client_ip)
+        socket_con.send(b"Welcome to RPi TCP server!")
+        t1 = threading.Thread(name="TCP_control_thread", target=tcplink, args=(socket_con, client_addr))
+        
+        t1.start()
+    except Exception :
+        print("mainthread: tcp connect closed.")
+        auto_tracer = False

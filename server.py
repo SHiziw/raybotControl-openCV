@@ -34,17 +34,28 @@ footage_socket.bind("tcp://*:5555")
 # control 2 motor flags
 Motor = MotorDriver()
 #a PID controler.
-RPID = PID(1, 0.1, 0.1)
+RPID = PID(0.1, 0.01, 0.01)
 #Globale variables
 l_speed = 100
 r_speed = 100
 global_message = ""
 auto_tracer = False # a controlable flag.
 
+def set_PID(code):
+    if code[1] in ["P","p"]:
+        RPID.setKp(float(code[2:]))
+    elif code[1] in ["I","i"]:
+        RPID.setKi(float(code[2:]))
+    elif code[1] in ["D","d"]:
+        RPID.setKd(float(code[2:]))
+    else:
+        pass
+
 def output_handle(output):
     global l_speed
     global r_speed
     global global_message
+    output = int(output)
     if r_speed == 100:
         l_speed = l_speed + output
         if l_speed>100:
@@ -113,7 +124,6 @@ def visual_servo():
             if len(cnts)>0:
                 c = max(cnts, key=cv2.contourArea)
                 ((X,Y), radius) = cv2.minEnclosingCircle(c)
-
                 delta_Y = Y - frame_height
                 delta_X = X - frame_width
                 RPID.update(delta_X)
@@ -131,7 +141,7 @@ def tcplink(sock, addr):
     while True:
         try:
             # all data is in data:
-            data = sock.recv(16)
+            data = sock.recv(128)
             full_command = data.decode('utf-8')
             head_command = full_command[0:9]
             # if you want to change the data, change here above.
@@ -139,8 +149,7 @@ def tcplink(sock, addr):
                 print("Received:%s" % data.decode('utf-8'))
                 if head_command[0] == "A":
                     #转到自动模式
-                    Motor.MotorRun(1, 'forward', l_speed)
-                    Motor.MotorRun(0, 'forward', r_speed)
+                    set_PID(full_command)
                     auto_tracer = True
                     sock.send(b'now auto sailing.')
                 elif head_command[0] == "M":
@@ -149,6 +158,7 @@ def tcplink(sock, addr):
                     cmd_finished = data.decode('utf-8') + ' already has been executed.'
                     sock.send(cmd_finished.encode('utf-8'))
                 elif head_command[0] == "S":
+                    auto_tracer = False
                     Motor.stop()
                     sock.send(b'now stopped.')
                 elif head_command[0] == "Q":

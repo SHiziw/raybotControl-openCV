@@ -6,6 +6,8 @@ import time
 import sys
 import threading
 import tkinter as tk
+from tkinter.simpledialog import askstring, askinteger, askfloat
+
 #RPi's IP
 SERVER_IP = "192.168.50.99"
 SERVER_PORT = 1811
@@ -112,6 +114,21 @@ def command_stop():
     socket_tcp.send(b'MF000F000')
 def command_auto():
     socket_tcp.send(b'AF100F100')
+def set_KP():
+    res = askfloat("设置KP", "将Kp增益设置为：")
+    command = "AP"+str(res)
+    socket_tcp.send(command.encode('utf-8'))
+    print("Kp: "+str(res))
+def set_KI():
+    res = askfloat("设置Ki", "将Ki增益设置为：")
+    command = "AI"+str(res)
+    socket_tcp.send(command.encode('utf-8'))
+    print("Ki: "+str(res))
+def set_KD():
+    res = askfloat("设置Kd", "将Kd增益设置为：")
+    command = "AD"+str(res)
+    socket_tcp.send(command.encode('utf-8'))
+    print("Kd: "+str(res))
 
 def sync_command():
     global received_data
@@ -224,9 +241,9 @@ editmenu = tk.Menu(menubar, tearoff=0)
 # 将上面定义的空菜单命名为 Edit，放在菜单栏中，就是装入那个容器中
 menubar.add_cascade(label='Edit', menu=editmenu)
 # 同样的在 Edit 中加入Cut、Copy、Paste等小命令功能单元，如果点击这些单元, 就会触发do_job的功能
-editmenu.add_command(label='Cut', command=do_job)
-editmenu.add_command(label='Copy', command=do_job)
-editmenu.add_command(label='Paste', command=do_job)
+editmenu.add_command(label='Kp', command=set_KP)
+editmenu.add_command(label='Ki', command=set_KI)
+editmenu.add_command(label='Kd', command=set_KD)
 # 第8步，创建第二级菜单，即菜单项里面的菜单
 submenu = tk.Menu(filemenu) # 和上面定义菜单一样，不过此处实在File上创建一个空的菜单
 filemenu.add_cascade(label='Import', menu=submenu, underline=0) # 给放入的菜单submenu命名为Import

@@ -143,7 +143,7 @@ def sync_command():
     npimg = np.frombuffer(img, dtype=np.uint8)
     source = cv2.imdecode(npimg, 1)
     cv2image = cv2.cvtColor(source, cv2.COLOR_BGR2RGB)
-    cv2image = cv2.resize(cv2image, (320,240), interpolation = cv2.INTER_AREA)
+    cv2image = cv2.resize(cv2image, (800,600), interpolation = cv2.INTER_AREA)
     img = Image.fromarray(cv2image)
     imgtk = ImageTk.PhotoImage(image=img)
     lmain.configure(image=imgtk)
@@ -244,7 +244,7 @@ botton_auto = tk.Button(botton_frame, text='自动模式', font=('黑体', 6), w
 botton_estabilish.pack(side="left")
 botton_close.pack(side="left")
 botton_auto.pack()
-l = tk.Label(root, width=10, height=12, text=" ")
+l = tk.Label(root, width=10, height=1, text=" ")
 l.pack()
 
 lmain = tk.Label(root)

@@ -1,5 +1,29 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# 通讯协议：[x][x][xxx][x][xxx]
+# A部分：A+[...]
+# M部分： M+[F/B]+[000]+[F/B]+[000]，分别表示左边的前进/后退+速度，右边的前进/后退+速度
+# P部分： P+P+[float],比例增益
+#        P+I+[float],积分增益
+#        P+P+[float],微分增益
+#C部分：C+[cmd]
+#       cmd列表：L陆地模式，W海洋模式，T原色摄像头 C滤色后摄像头
+#Q部分：退出，断开tcp连接
+#S部分：直接停止
+# title           :server.py
+# description     :多平台tcp控制客户端，包括了指令发送，图像接收，参数回传，GUI界面
+# author          :Vic Lee 
+# date            :20200609
+# version         :0.2
+# notes           :
+# python_version  :3.8.3
+# ==============================================================================
+
+import cv2
+import zmq
+import base64
+import numpy as np
+from PIL import ImageTk, Image
 
 import socket
 import time
@@ -19,6 +43,12 @@ l_command_old = "0"
 r_command = "0"
 r_command_old = "0" 
 socket_tcp = None
+
+context = zmq.Context()
+footage_socket = context.socket(zmq.SUB)
+footage_socket.connect('tcp://%s:5555'%SERVER_IP)
+footage_socket.setsockopt(zmq.SUBSCRIBE,''.encode('utf-8'))  # 接收所有消息
+
 
 def read_from_server(socket1, server_addr):
     global is_conneted
@@ -60,7 +90,7 @@ def send_commands(socket1, server_addr):
             is_conneted = False
             socket1.close()
             socket1=None
-
+        time.sleep(0.03)
 def close_tcplink():
     global is_conneted
     global received_data
@@ -102,6 +132,31 @@ def backgroud_establish():
     t0 = threading.Thread(name="connecting", target=establish_connection, args=(socket1, server_addr, SERVER_IP, SERVER_PORT))
     t0.start()
 
+def sync_command():
+    global received_data
+    global is_conneted
+
+    data_from_raybot3.set(received_data)
+
+    frame = footage_socket.recv_string()
+    img = base64.b64decode(frame)
+    npimg = np.frombuffer(img, dtype=np.uint8)
+    source = cv2.imdecode(npimg, 1)
+    cv2image = cv2.cvtColor(source, cv2.COLOR_BGR2RGB)
+    cv2image = cv2.resize(cv2image, (320,240), interpolation = cv2.INTER_AREA)
+    img = Image.fromarray(cv2image)
+    imgtk = ImageTk.PhotoImage(image=img)
+    lmain.configure(image=imgtk)
+    lmain.update()
+
+    if is_conneted == False:
+        connection_status.set('trying to connect Raybot3...')
+    else:
+        connection_status.set('Raybot3 online!')
+    left_subtitle.configure(text=str(left_speed.get()))
+    right_subtitle.configure(text=str(right_speed.get())) 
+    root.after(0,sync_command)   # 每隔1s调用函数 gettime 自身获取时间
+
 def command_up():
     socket_tcp.send(b'MF100F100') 
 def command_down():
@@ -116,31 +171,20 @@ def command_auto():
     socket_tcp.send(b'AF100F100')
 def set_KP():
     res = askfloat("设置KP", "将Kp增益设置为：")
-    command = "AP"+str(res)
+    command = "PP"+str(res)
     socket_tcp.send(command.encode('utf-8'))
     print("Kp: "+str(res))
 def set_KI():
     res = askfloat("设置Ki", "将Ki增益设置为：")
-    command = "AI"+str(res)
+    command = "PI"+str(res)
     socket_tcp.send(command.encode('utf-8'))
     print("Ki: "+str(res))
 def set_KD():
     res = askfloat("设置Kd", "将Kd增益设置为：")
-    command = "AD"+str(res)
+    command = "PD"+str(res)
     socket_tcp.send(command.encode('utf-8'))
     print("Kd: "+str(res))
 
-def sync_command():
-    global received_data
-    global is_conneted
-    data_from_raybot3.set(received_data)
-    if is_conneted == False:
-        connection_status.set('trying to connect Raybot3...')
-    else:
-        connection_status.set('Raybot3 online!')
-    left_subtitle.configure(text=str(left_speed.get()))
-    right_subtitle.configure(text=str(right_speed.get())) 
-    root.after(30,sync_command)   # 每隔1s调用函数 gettime 自身获取时间
 def show(event):
     s = '左侧的取值为' + str(left_speed.get())
     global l_command
@@ -172,11 +216,16 @@ def standard_command(command):
         return "f"+"0"+str(cmd)[0:2]
     else: return "f000"
 
-counter = 0
-def do_job():
-    global counter
-    l.config(text='do '+ str(counter))
-    counter += 1
+def do_job(x):  #处理C字头命令
+    cmd = "C"+x
+    socket_tcp.send(cmd.encode('utf-8')) 
+
+def hit_me():
+    global is_conneted
+    if is_conneted == False:
+        backgroud_establish()
+    else:
+        connection_status.set('Raybot3 is online!')
 
 root= tk.Tk()
 root.title('RB3tcp控制端')
@@ -185,13 +234,6 @@ root.geometry('480x800') # 这里的乘号不是 * ，而是小写英文字母 x
 connection_status = tk.StringVar()
 l = tk.Label(root, textvariable=connection_status)
 l.pack()
-
-def hit_me():
-    global is_conneted
-    if is_conneted == False:
-        backgroud_establish()
-    else:
-        connection_status.set('Raybot3 is online!')
 
 botton_frame = tk.Frame(root)
 botton_frame.pack()
@@ -205,6 +247,11 @@ botton_auto.pack()
 l = tk.Label(root, width=10, height=12, text=" ")
 l.pack()
 
+lmain = tk.Label(root)
+lmain.pack()
+
+l = tk.Label(root, width=10, height=1, text=" ")
+l.pack()
 arrow_frame = tk.Frame(root)
 arrow_frame.pack()
 arrow_frame0 = tk.Frame(arrow_frame)
@@ -224,7 +271,7 @@ arrow_dowm = tk.Button(arrow_frame1, image=img_down,width = 120,height=120,  com
 img_right = tk.PhotoImage(file='right.png') 
 arrow_right = tk.Button(arrow_frame2, image=img_right,width = 120,height=120,  command=command_right).pack(side="right")
 
-l = tk.Label(root, width=10, height=2, text=" ")
+l = tk.Label(root, width=10, height=1, text=" ")
 l.pack()
 
  # 建立菜单栏
@@ -232,8 +279,8 @@ menubar = tk.Menu(root)
 filemenu = tk.Menu(menubar, tearoff=0)
 menubar.add_cascade(label='File', menu=filemenu)
 filemenu.add_command(label='New', command=do_job)
-filemenu.add_command(label='Open', command=do_job)
-filemenu.add_command(label='Save', command=do_job)
+filemenu.add_command(label='Land', command=lambda:do_job("L")) # 开启陆地模式
+filemenu.add_command(label='Water', command=lambda:do_job("W")) #开启海洋模式
 filemenu.add_separator()    # 添加一条分隔线
 filemenu.add_command(label='Exit', command=root.quit) # 用tkinter里面自带的quit()函数
 # 第7步，创建一个Edit菜单项（默认不下拉，下拉内容包括Cut，Copy，Paste功能项）
@@ -246,9 +293,12 @@ editmenu.add_command(label='Ki', command=set_KI)
 editmenu.add_command(label='Kd', command=set_KD)
 # 第8步，创建第二级菜单，即菜单项里面的菜单
 submenu = tk.Menu(filemenu) # 和上面定义菜单一样，不过此处实在File上创建一个空的菜单
-filemenu.add_cascade(label='Import', menu=submenu, underline=0) # 给放入的菜单submenu命名为Import
+filemenu.add_cascade(label='Color', menu=submenu, underline=0) # 给放入的菜单submenu命名为Import
 # 第9步，创建第三级菜单命令，即菜单项里面的菜单项里面的菜单命令（有点拗口，笑~~~）
-submenu.add_command(label='Submenu_1', command=do_job)   # 这里和上面创建原理也一样，在Import菜单项中加入一个小菜单命令Submenu_1
+submenu.add_command(label='raw', command=lambda:do_job("T"))   # 这里和上面创建原理也一样，在Import菜单项中加入一个小菜单命令Submenu_1
+submenu.add_command(label='color_1', command=lambda:do_job("A"))   # 这里和上面创建原理也一样，在Import菜单项中加入一个小菜单命令Submenu_1
+submenu.add_command(label='hsv', command=lambda:do_job("B"))   # 这里和上面创建原理也一样，在Import菜单项中加入一个小菜单命令Submenu_1
+submenu.add_command(label='color_3', command=lambda:do_job("C"))   # 这里和上面创建原理也一样，在Import菜单项中加入一个小菜单命令Submenu_1
 
 left_label = tk.Label(root,text='左侧精确调速',anchor="w", font=('黑体',6),\
         width=30,\

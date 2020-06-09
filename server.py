@@ -1,5 +1,26 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# 通讯协议：[x][x][xxx][x][xxx]
+# A部分：A+[...]
+# M部分： M+[F/B]+[000]+[F/B]+[000]，分别表示左边的前进/后退+速度，右边的前进/后退+速度
+# P部分： P+P+[float],比例增益
+#        P+I+[float],积分增益
+#        P+P+[float],微分增益
+#C部分：C+[cmd]
+#       cmd列表：L陆地模式，W海洋模式，T原色摄像头 C滤色后摄像头
+#Q部分：退出，断开tcp连接
+#S部分：直接停止
+# title           :server.py
+# description     :树莓派控制程序入口，包括了指令接收，图像回传，电机控制，视觉PID伺服控制
+# author          :Vic Lee 
+# date            :20200609
+# version         :0.2
+# notes           :
+# python_version  :3.8.3
+# ==============================================================================
+
+import time
+
 import cv2
 import zmq
 import base64
@@ -64,7 +85,7 @@ def set_color(code):    #包含了一些特殊指令（如陆地模式）
         global_color = "C"
     elif code[1] in ["L","l"]: #开启陆地模式
         land_mode = True
-    elif code[1] in ["W","w"]:
+    elif code[1] in ["W","w"]:#海洋模式
         land_mode = False
     else:
         global_color = "T"

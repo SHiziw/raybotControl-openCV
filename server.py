@@ -34,12 +34,14 @@ footage_socket.bind("tcp://*:5555")
 # control 2 motor flags
 Motor = MotorDriver()
 #a PID controler.
-RPID = PID(0.1, 0.01, 0.01)
+RPID = PID(0.006, 0.0001, 0.005)
 #Globale variables
 l_speed = 100
 r_speed = 100
 global_message = ""
 auto_tracer = False # a controlable flag.
+land_mode = False
+global_color = ""
 
 def set_PID(code):
     if code[1] in ["P","p"]:
@@ -51,11 +53,29 @@ def set_PID(code):
     else:
         pass
 
+def set_color(code):    #包含了一些特殊指令（如陆地模式）
+    global land_mode
+    global global_color
+    if code[1] in ["A","a"]:
+        global_color = "A"
+    elif code[1] in ["B","b"]:
+        global_color = "B"
+    elif code[1] in ["C","c"]:
+        global_color = "C"
+    elif code[1] in ["L","l"]: #开启陆地模式
+        land_mode = True
+    elif code[1] in ["W","w"]:
+        land_mode = False
+    else:
+        global_color = "T"
+
 def output_handle(output):
     global l_speed
     global r_speed
     global global_message
-    output = int(output)
+    global land_mode
+    if land_mode == True:
+        output = -output
     if r_speed == 100:
         l_speed = l_speed + output
         if l_speed>100:
@@ -69,16 +89,19 @@ def output_handle(output):
     else:
         print("wrong speed!")
         global_message = "handle get wrong speed!"
-    Motor.MotorRun(1, 'forward', l_speed)
-    Motor.MotorRun(0, 'forward', r_speed)
-
+    if land_mode == False:
+        Motor.MotorRun(0, 'forward', r_speed)
+        Motor.MotorRun(1, 'forward', l_speed)
+    else: 
+        Motor.MotorRun(0, 'forward', -r_speed)
+        Motor.MotorRun(1, 'forward', -l_speed)
 # visual servo control and frame transform powered by openCV.
 def visual_servo():
     global auto_tracer
     global global_message
     # target color.
-    colorUpper = (200, 255, 255)
-    colorLower = (155, 100, 100)
+    colorUpper = (26, 212, 174)
+    colorLower = (13, 30, 25)
     frame_width = 160
     frame_height = 120
 
@@ -108,25 +131,35 @@ def visual_servo():
             fps = str(fps)
             counter = 0
             start_time = time.time()       
-        cv2.putText(frame_image, "FPS {0}" .format(fps), (10, 30), 1, 1.5, (255, 0, 255), 2)
+        cv2.putText(frame_image, "FPS {0}" .format(fps), (5, 10), 1, 0.5, (255, 0, 255), 1)
 
         hsv = cv2.cvtColor(frame_image, cv2.COLOR_BGR2HSV)
-        mask = cv2.inRange(hsv, colorLower, colorUpper)
-        mask = cv2.erode(mask, None, iterations=2)    
-        mask = cv2.dilate(mask,None,iterations=2)
-
-        encoded, buffer = cv2.imencode('.jpg', frame_image) #sending frame_image.
+        mask1 = cv2.inRange(hsv, colorLower, colorUpper)
+        mask2 = cv2.erode(mask1, None, iterations=2)    
+        mask3 = cv2.dilate(mask2,None,iterations=2)
+        target = frame_image
+        if global_color in ["C"]:
+            target = mask3
+        elif global_color in ["B"]:
+            target = hsv
+        elif global_color in ["A"]:
+            target = mask1
+        else:
+            pass
+        encoded, buffer = cv2.imencode('.jpg', target) #sending frame_image.
         jpg_as_text = base64.b64encode(buffer)
         footage_socket.send(jpg_as_text)
 
         if (auto_tracer):
-            cnts = cv2.findContours(mask.copy(),cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
+            cnts = cv2.findContours(mask3.copy(),cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
             if len(cnts)>0:
                 c = max(cnts, key=cv2.contourArea)
                 ((X,Y), radius) = cv2.minEnclosingCircle(c)
-                delta_Y = Y - frame_height
-                delta_X = X - frame_width
+                delta_Y = Y - frame_height*0.5
+                delta_X = X - frame_width*0.5
                 RPID.update(delta_X)
+                print("Delta: {0}".format(delta_X))
+                print(RPID.output)
                 output_handle(RPID.output)
                 print("l: {0}, r:{1}".format(l_speed, r_speed))
                 global_message = "PID controler trying to lock in center..."
@@ -138,6 +171,8 @@ def visual_servo():
 def tcplink(sock, addr):
     global auto_tracer
     global global_message
+    global l_speed
+    global r_speed
     while True:
         try:
             # all data is in data:
@@ -149,15 +184,25 @@ def tcplink(sock, addr):
                 print("Received:%s" % data.decode('utf-8'))
                 if head_command[0] == "A":
                     #转到自动模式
-                    set_PID(full_command)
+                    l_speed = 100
+                    r_speed = 100
                     auto_tracer = True
                     sock.send(b'now auto sailing.')
+                elif head_command[0] == "P":
+                    #设置PID
+                    set_PID(full_command)
+                    sock.send(b'setting PID..')
+                elif head_command[0] == "C":
+                    #设置PID
+                    set_color(full_command)
+                    sock.send(b'setting color..')
                 elif head_command[0] == "M":
                     auto_tracer = False
                     Motor.run_at_speed(head_command)
                     cmd_finished = data.decode('utf-8') + ' already has been executed.'
                     sock.send(cmd_finished.encode('utf-8'))
                 elif head_command[0] == "S":
+                    #停机
                     auto_tracer = False
                     Motor.stop()
                     sock.send(b'now stopped.')

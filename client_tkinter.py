@@ -33,7 +33,7 @@ import tkinter as tk
 from tkinter.simpledialog import askstring, askinteger, askfloat
 
 #RPi's IP
-SERVER_IP = "192.168.50.99"
+SERVER_IP = "192.168.43.247"
 SERVER_PORT = 1811
 # waiting for a recieve from server.
 is_conneted = False
@@ -143,7 +143,7 @@ def sync_command():
     npimg = np.frombuffer(img, dtype=np.uint8)
     source = cv2.imdecode(npimg, 1)
     cv2image = cv2.cvtColor(source, cv2.COLOR_BGR2RGB)
-    cv2image = cv2.resize(cv2image, (320,240), interpolation = cv2.INTER_AREA)
+    cv2image = cv2.resize(cv2image, (800,600), interpolation = cv2.INTER_AREA)
     img = Image.fromarray(cv2image)
     imgtk = ImageTk.PhotoImage(image=img)
     lmain.configure(image=imgtk)
@@ -237,10 +237,9 @@ l.pack()
 
 botton_frame = tk.Frame(root)
 botton_frame.pack()
-
-botton_estabilish = tk.Button(botton_frame, text='建立连接', font=('黑体', 12), width=10, height=1, command=hit_me)
-botton_close = tk.Button(botton_frame, text='断开连接', font=('黑体', 12), width=10, height=1, command=close_tcplink)
-botton_auto = tk.Button(botton_frame, text='自动模式', font=('黑体', 12), width=10, height=1, command=command_auto)
+botton_estabilish = tk.Button(botton_frame, text='建立连接', font=('黑体', 6), width=10, height=1, command=hit_me)
+botton_close = tk.Button(botton_frame, text='断开连接', font=('黑体', 6), width=10, height=1, command=close_tcplink)
+botton_auto = tk.Button(botton_frame, text='自动模式', font=('黑体', 6), width=10, height=1, command=command_auto)
 
 botton_estabilish.pack(side="left")
 botton_close.pack(side="left")
@@ -262,15 +261,15 @@ arrow_frame0.pack(side="left")
 arrow_frame1.pack(side="left")
 arrow_frame2.pack(side="right")
 img_left = tk.PhotoImage(file='left.png') 
-arrow_left = tk.Button(arrow_frame0, image=img_left, command=command_left).pack(side="left")
+arrow_left = tk.Button(arrow_frame0, image=img_left, width = 120,height=120, command=command_left).pack(side="left")
 img_up = tk.PhotoImage(file='up.png') 
-arrow_up = tk.Button(arrow_frame1, image=img_up, command=command_up).pack()
+arrow_up = tk.Button(arrow_frame1, image=img_up,width = 120,height=120,  command=command_up).pack()
 img_stop = tk.PhotoImage(file='stop.png') 
-arrow_stop = tk.Button(arrow_frame1, image=img_stop, command=command_stop).pack()
+arrow_stop = tk.Button(arrow_frame1, image=img_stop,width = 120,height=120,  command=command_stop).pack()
 img_down = tk.PhotoImage(file='down.png') 
-arrow_dowm = tk.Button(arrow_frame1, image=img_down, command=command_down).pack()
+arrow_dowm = tk.Button(arrow_frame1, image=img_down,width = 120,height=120,  command=command_down).pack()
 img_right = tk.PhotoImage(file='right.png') 
-arrow_right = tk.Button(arrow_frame2, image=img_right, command=command_right).pack(side="right")
+arrow_right = tk.Button(arrow_frame2, image=img_right,width = 120,height=120,  command=command_right).pack(side="right")
 
 l = tk.Label(root, width=10, height=1, text=" ")
 l.pack()
@@ -301,22 +300,22 @@ submenu.add_command(label='color_1', command=lambda:do_job("A"))   # 这里和�
 submenu.add_command(label='hsv', command=lambda:do_job("B"))   # 这里和上面创建原理也一样，在Import菜单项中加入一个小菜单命令Submenu_1
 submenu.add_command(label='color_3', command=lambda:do_job("C"))   # 这里和上面创建原理也一样，在Import菜单项中加入一个小菜单命令Submenu_1
 
-left_label = tk.Label(root,text='左侧精确调速',anchor="w", font=('黑体',14),\
+left_label = tk.Label(root,text='左侧精确调速',anchor="w", font=('黑体',6),\
         width=30,\
         height=1)
 
 left_speed=tk.DoubleVar()
-left_slider = tk.Scale(root,orient=tk.HORIZONTAL,length=300,from_=-100,to=100,tickinterval=-20,resolution=1,variable=left_speed)
+left_slider = tk.Scale(root,orient=tk.HORIZONTAL,length=750,sliderlength=120,width=50,from_=-100,to=100, font=('黑体',6),tickinterval=25,resolution=1,variable=left_speed)
 left_slider.bind('<ButtonRelease-1>',show)
 
 left_subtitle = tk.Label(root,text="left_speed.get()")
 
-right_label = tk.Label(root,text='右侧精确调速', anchor="w", font=('黑体',14),\
+right_label = tk.Label(root,text='右侧精确调速', anchor="w", font=('黑体',6),\
         width=30,\
         height=1)
 
 right_speed=tk.DoubleVar()
-right_slider = tk.Scale(root,orient=tk.HORIZONTAL,length=300,from_=-100,to=100,tickinterval=-20,resolution=1,variable=right_speed)
+right_slider = tk.Scale(root,orient=tk.HORIZONTAL,length=750,width=50,from_=-100,to=100,font=('黑体',6),sliderlength=120,tickinterval=25,resolution=1,variable=right_speed)
 right_slider.bind('<ButtonRelease-1>',showR)
 
 right_subtitle = tk.Label(root,text="right_speed.get()")

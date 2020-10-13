@@ -264,3 +264,13 @@ while True:
     except Exception :
         print("mainthread: tcp connect closed.")
         auto_tracer = False
+        print("Starting socket again: TCP...")
+        # 1.create socket object:socket=socket.socket(family,type)
+        socket_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        print("TCP server listen @ %s:%d!" % (HOST_IP, HOST_PORT))
+        host_addr = (HOST_IP, HOST_PORT)
+        # 2.bind socket to addr:socket.bind(address)
+        socket_tcp.bind(host_addr)
+        # 3.listen connection request:socket.listen(backlog)
+        socket_tcp.listen(3)
+        # 5.handle

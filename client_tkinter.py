@@ -33,7 +33,8 @@ import tkinter as tk
 from tkinter.simpledialog import askstring, askinteger, askfloat
 
 #RPi's IP
-SERVER_IP = "192.168.43.247"
+#SERVER_IP = "192.168.43.247"
+SERVER_IP = "192.168.50.99"
 SERVER_PORT = 1811
 # waiting for a recieve from server.
 is_conneted = False
@@ -157,18 +158,6 @@ def sync_command():
     right_subtitle.configure(text=str(right_speed.get())) 
     root.after(0,sync_command)   # 每隔1s调用函数 gettime 自身获取时间
 
-def command_up():
-    socket_tcp.send(b'MF100F100') 
-def command_down():
-    socket_tcp.send(b'MB100B100') 
-def command_left():
-    socket_tcp.send(b'MB100F100')
-def command_right():
-    socket_tcp.send(b'MF100B100')
-def command_stop():
-    socket_tcp.send(b'MF000F000')
-def command_auto():
-    socket_tcp.send(b'AF100F100')
 def set_KP():
     res = askfloat("设置KP", "将Kp增益设置为：")
     command = "PP"+str(res)
@@ -220,6 +209,23 @@ def do_job(x):  #处理C字头命令
     cmd = "C"+x
     socket_tcp.send(cmd.encode('utf-8')) 
 
+def command_up():
+    socket_tcp.send("MF{0}F{1}".format(standard_command(l_command)[1:],standard_command(r_command)[1:]).encode('utf-8')) 
+def command_down():
+    socket_tcp.send('MB{0}B{0}'.format(standard_command(l_command)[1:],standard_command(r_command)[1:]).encode('utf-8')) 
+def command_left():
+    socket_tcp.send('MB{0}F{0}'.format(standard_command(l_command)[1:],standard_command(r_command)[1:]).encode('utf-8'))
+def command_right():
+    socket_tcp.send('MF{0}B{0}'.format(standard_command(l_command)[1:],standard_command(r_command)[1:]).encode('utf-8'))
+def command_stop():
+    socket_tcp.send(b'MF000F000')
+def command_auto():
+    socket_tcp.send(b'AF100F100')
+def command_record():
+    socket_tcp.send(b'IF100F100')
+def command_stop_record():
+    socket_tcp.send(b'OF100F100')    
+
 def hit_me():
     global is_conneted
     if is_conneted == False:
@@ -240,10 +246,17 @@ botton_frame.pack()
 botton_estabilish = tk.Button(botton_frame, text='建立连接', font=('黑体', 6), width=10, height=1, command=hit_me)
 botton_close = tk.Button(botton_frame, text='断开连接', font=('黑体', 6), width=10, height=1, command=close_tcplink)
 botton_auto = tk.Button(botton_frame, text='自动模式', font=('黑体', 6), width=10, height=1, command=command_auto)
-
 botton_estabilish.pack(side="left")
 botton_close.pack(side="left")
 botton_auto.pack()
+
+botton_frame2 = tk.Frame(root)
+botton_frame2.pack()
+botton_record = tk.Button(botton_frame2, text='开始采集', font=('黑体', 6), width=10, height=1, command=command_record)
+botton_stop_record = tk.Button(botton_frame2, text='停止采集', font=('黑体', 6), width=10, height=1, command=command_stop_record)
+botton_record.pack(side="left")
+botton_stop_record.pack(side="left")
+
 l = tk.Label(root, width=10, height=1, text=" ")
 l.pack()
 
@@ -261,15 +274,15 @@ arrow_frame0.pack(side="left")
 arrow_frame1.pack(side="left")
 arrow_frame2.pack(side="right")
 img_left = tk.PhotoImage(file='left.png') 
-arrow_left = tk.Button(arrow_frame0, image=img_left, width = 120,height=120, command=command_left).pack(side="left")
+arrow_left = tk.Button(arrow_frame0, image=img_left, width = 12,height=12, command=command_left).pack(side="left")
 img_up = tk.PhotoImage(file='up.png') 
-arrow_up = tk.Button(arrow_frame1, image=img_up,width = 120,height=120,  command=command_up).pack()
+arrow_up = tk.Button(arrow_frame1, image=img_up,width = 12,height=12,  command=command_up).pack()
 img_stop = tk.PhotoImage(file='stop.png') 
-arrow_stop = tk.Button(arrow_frame1, image=img_stop,width = 120,height=120,  command=command_stop).pack()
+arrow_stop = tk.Button(arrow_frame1, image=img_stop,width = 12,height=12,  command=command_stop).pack()
 img_down = tk.PhotoImage(file='down.png') 
-arrow_dowm = tk.Button(arrow_frame1, image=img_down,width = 120,height=120,  command=command_down).pack()
+arrow_dowm = tk.Button(arrow_frame1, image=img_down,width = 12,height=12,  command=command_down).pack()
 img_right = tk.PhotoImage(file='right.png') 
-arrow_right = tk.Button(arrow_frame2, image=img_right,width = 120,height=120,  command=command_right).pack(side="right")
+arrow_right = tk.Button(arrow_frame2, image=img_right,width = 12,height=12,  command=command_right).pack(side="right")
 
 l = tk.Label(root, width=10, height=1, text=" ")
 l.pack()

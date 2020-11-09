@@ -1,31 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# 通讯协议：[x][x][xxx][x][xxx]
-# A部分：A+[...]
-# M部分： M+[F/B]+[000]+[F/B]+[000]，分别表示左边的前进/后退+速度，右边的前进/后退+速度
-# P部分： P+P+[float],比例增益
-#        P+I+[float],积分增益
-#        P+P+[float],微分增益
-#C部分：C+[cmd]
-#       cmd列表：L陆地模式，W海洋模式，T原色摄像头 C滤色后摄像头
-#Q部分：退出，断开tcp连接
-#S部分：直接停止
-# title           :server.py
-# description     :树莓派控制程序入口，包括了指令接收，图像回传，电机控制，视觉PID伺服控制
-# author          :Vic Lee 
-# date            :20200609
-# version         :0.2
-# notes           :
-# python_version  :3.8.3
-# ==============================================================================
-
-import time
-
 import cv2
 import zmq
 import base64
 import numpy as np
 
+import csv
+import board
+from adafruit_ina219 import ADCResolution, BusVoltageRange, INA219
 import socket
 import time
 import sys
@@ -35,7 +17,8 @@ from RayPID import PID
 lock = threading.Lock()
 
 # define host ip: Rpi's IP, if you want to use frp, you should set IP to 127.0.0.1
-HOST_IP = "192.168.43.247"
+# HOST_IP = "192.168.43.247"
+HOST_IP = "192.168.50.99"
 HOST_PORT = 1811
 print("Starting socket: TCP...")
 # 1.create socket object:socket=socket.socket(family,type)
@@ -63,6 +46,31 @@ global_message = ""
 auto_tracer = False # a controlable flag.
 land_mode = False
 global_color = ""
+is_saving = False
+
+
+i2c_bus = board.I2C()
+
+ina1 = INA219(i2c_bus,addr=0x40)
+ina2 = INA219(i2c_bus,addr=0x41)
+ina3 = INA219(i2c_bus,addr=0x42)
+ina4 = INA219(i2c_bus,addr=0x43)
+
+ina1.bus_adc_resolution = ADCResolution.ADCRES_12BIT_32S
+ina1.shunt_adc_resolution = ADCResolution.ADCRES_12BIT_32S
+ina1.bus_voltage_range = BusVoltageRange.RANGE_16V
+
+ina2.bus_adc_resolution = ADCResolution.ADCRES_12BIT_32S
+ina2.shunt_adc_resolution = ADCResolution.ADCRES_12BIT_32S
+ina2.bus_voltage_range = BusVoltageRange.RANGE_16V
+
+ina3.bus_adc_resolution = ADCResolution.ADCRES_12BIT_32S
+ina3.shunt_adc_resolution = ADCResolution.ADCRES_12BIT_32S
+ina3.bus_voltage_range = BusVoltageRange.RANGE_16V
+
+ina4.bus_adc_resolution = ADCResolution.ADCRES_12BIT_32S
+ina4.shunt_adc_resolution = ADCResolution.ADCRES_12BIT_32S
+ina4.bus_voltage_range = BusVoltageRange.RANGE_16V
 
 def set_PID(code):
     if code[1] in ["P","p"]:
@@ -85,7 +93,7 @@ def set_color(code):    #包含了一些特殊指令（如陆地模式）
         global_color = "C"
     elif code[1] in ["L","l"]: #开启陆地模式
         land_mode = True
-    elif code[1] in ["W","w"]:#海洋模式
+    elif code[1] in ["W","w"]:
         land_mode = False
     else:
         global_color = "T"
@@ -194,6 +202,7 @@ def tcplink(sock, addr):
     global global_message
     global l_speed
     global r_speed
+    global is_saving
     while True:
         try:
             # all data is in data:
@@ -232,6 +241,11 @@ def tcplink(sock, addr):
                     #退出连接，请检查还需要补充吗
                     auto_tracer = False
                     sock.close()
+                elif head_command[0] == "I":
+                    is_saving = True
+
+                elif head_command[0] == "O":    
+                    is_saving = False
                 else:
                     cmd_finished = data.decode('utf-8') + ' the data has been broken during transform!'
                     sock.send(cmd_finished.encode('utf-8'))
@@ -246,11 +260,42 @@ def tcplink(sock, addr):
             auto_tracer = False
             sock.close()
             break
+def data_saving():
+    global is_saving
+    while True:
+        if  is_saving:
+            with open("/home/pi/raybotControl/power_{}.csv".format(int(round(time.time()*1000))),"w", newline='') as csvfile: 
+                writer = csv.writer(csvfile)
+                t=int(round(time.time()*1000))
+                while is_saving:
+                    bus_voltage1 = ina1.bus_voltage        # voltage on V- (load side)
+                    shunt_voltage1 = ina1.shunt_voltage    # voltage between V+ and V- across the shunt
+                    power1 = ina1.power
+                    current1 = ina1.current                # current in mA
+
+                    bus_voltage2 = ina2.bus_voltage        # voltage on V- (load side)
+                    shunt_voltage2 = ina2.shunt_voltage    # voltage between V+ and V- across the shunt
+                    power2 = ina2.power
+                    current2 = ina2.current                # current in mA
+                    
+                    bus_voltage3 = ina3.bus_voltage        # voltage on V- (load side)
+                    shunt_voltage3 = ina3.shunt_voltage    # voltage between V+ and V- across the shunt
+                    power3 = ina3.power
+                    current3 = ina3.current                # current in mA
+                    
+                    bus_voltage4 = ina4.bus_voltage        # voltage on V- (load side)
+                    shunt_voltage4 = ina4.shunt_voltage    # voltage between V+ and V- across the shunt
+                    power4 = ina4.power
+                    current4 = ina4.current                # current in mA
+    
+                    writer.writerow([int(round(time.time()*1000))-t,bus_voltage1, shunt_voltage1, power1, current1, bus_voltage2,shunt_voltage2,power2,current2])
+                    time.sleep(0.1)
 
 #开启视觉伺服控制线程
 t2 = threading.Thread(name="Opencv_PID", target=visual_servo)
 t2.start()
-
+t3 = threading.Thread(name="data_saving", target=data_saving)
+t3.start()
 while True:
     try:
         # 4.waite for client:connection,address=socket.accept(), 接受一个新连接:

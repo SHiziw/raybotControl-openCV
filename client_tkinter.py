@@ -10,7 +10,7 @@
 #       cmd列表：L陆地模式，W海洋模式，T原色摄像头 C滤色后摄像头
 #Q部分：退出，断开tcp连接
 #S部分：直接停止
-# title           :server.py
+# title           :client_tkinter.py
 # description     :多平台tcp控制客户端，包括了指令发送，图像接收，参数回传，GUI界面
 # author          :Vic Lee 
 # date            :20200609
@@ -33,8 +33,10 @@ import tkinter as tk
 from tkinter.simpledialog import askstring, askinteger, askfloat
 
 #RPi's IP
-SERVER_IP = "192.168.43.247"
+#SERVER_IP = "192.168.43.247"
+SERVER_IP = "192.168.50.99"
 SERVER_PORT = 1811
+server_addr = (SERVER_IP, SERVER_PORT)
 # waiting for a recieve from server.
 is_conneted = False
 received_data = "no data received..."
@@ -50,12 +52,13 @@ footage_socket.connect('tcp://%s:5555'%SERVER_IP)
 footage_socket.setsockopt(zmq.SUBSCRIBE,''.encode('utf-8'))  # 接收所有消息
 
 
-def read_from_server(socket1, server_addr):
+def read_from_server():
     global is_conneted
     global received_data
+    global socket_tcp
     while is_conneted:
         try:
-            data = socket1.recv(1024)
+            data = socket_tcp.recv(1024)
             full_command = data.decode('utf-8')
             if len(data)>0:
                 # decode as utf-8
@@ -64,10 +67,9 @@ def read_from_server(socket1, server_addr):
             continue
         except Exception:
             is_conneted = False
-            socket1.close()
-            socke1t=None
+            socket_tcp.close()
 
-def send_commands(socket1, server_addr):
+def send_commands():
     global l_command
     global l_command_old
     global r_command
@@ -78,18 +80,18 @@ def send_commands(socket1, server_addr):
             if l_command != l_command_old: 
                 transl = "M"+standard_command(l_command)+standard_command(r_command)
                 # encode to ascii
-                socket1.send(transl.encode('utf-8')) 
+                socket_tcp.send(transl.encode('utf-8')) 
                 l_command_old = l_command
             if r_command != r_command_old: 
                 transr = "M"+standard_command(l_command)+standard_command(r_command)
                 # encode to ascii
-                socket1.send(transr.encode('utf-8')) 
+                socket_tcp.send(transr.encode('utf-8')) 
                 r_command_old = r_command
              
         except KeyboardInterrupt:
             is_conneted = False
-            socket1.close()
-            socket1=None
+            socket_tcp.close()
+
         time.sleep(0.03)
 def close_tcplink():
     global is_conneted
@@ -100,9 +102,11 @@ def close_tcplink():
     socket_tcp.close()
     print("socket closed!")
 
-def establish_connection(socket1, server_addr, SERVER_IP, SERVER_PORT):
+def backgroud_establish():
     global is_conneted
     global socket_tcp
+    print("Starting socket: TCP...")
+    socket_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     started_time = time.time()
     while True:
         try:
@@ -111,7 +115,7 @@ def establish_connection(socket1, server_addr, SERVER_IP, SERVER_PORT):
                 print("time out...")
                 return
             print("Connecting to server @ %s:%d..." %(SERVER_IP, SERVER_PORT))
-            socket1.connect(server_addr)
+            socket_tcp.connect(server_addr)
             is_conneted = True
             break
         except Exception:
@@ -119,25 +123,18 @@ def establish_connection(socket1, server_addr, SERVER_IP, SERVER_PORT):
             time.sleep(1)
             continue
     print("Please tell me what should I do with commands!")
-    socket_tcp = socket1
-    t1 = threading.Thread(name="reader",target=read_from_server, args=(socket1, server_addr))
-    t1.start()
-    t2 = threading.Thread(name="sender",target=send_commands, args=(socket1, server_addr))
-    t2.start()
 
-def backgroud_establish():
-    print("Starting socket: TCP...")
-    server_addr = (SERVER_IP, SERVER_PORT)
-    socket1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    t0 = threading.Thread(name="connecting", target=establish_connection, args=(socket1, server_addr, SERVER_IP, SERVER_PORT))
-    t0.start()
+    t1 = threading.Thread(name="reader",target=read_from_server)
+    t1.start()
+    t2 = threading.Thread(name="sender",target=send_commands)
+    t2.start()
 
 def sync_command():
     global received_data
     global is_conneted
 
     data_from_raybot3.set(received_data)
-
+    
     frame = footage_socket.recv_string()
     img = base64.b64decode(frame)
     npimg = np.frombuffer(img, dtype=np.uint8)
@@ -148,7 +145,7 @@ def sync_command():
     imgtk = ImageTk.PhotoImage(image=img)
     lmain.configure(image=imgtk)
     lmain.update()
-
+    
     if is_conneted == False:
         connection_status.set('trying to connect Raybot3...')
     else:
@@ -157,18 +154,6 @@ def sync_command():
     right_subtitle.configure(text=str(right_speed.get())) 
     root.after(0,sync_command)   # 每隔1s调用函数 gettime 自身获取时间
 
-def command_up():
-    socket_tcp.send(b'MF100F100') 
-def command_down():
-    socket_tcp.send(b'MB100B100') 
-def command_left():
-    socket_tcp.send(b'MB100F100')
-def command_right():
-    socket_tcp.send(b'MF100B100')
-def command_stop():
-    socket_tcp.send(b'MF000F000')
-def command_auto():
-    socket_tcp.send(b'AF100F100')
 def set_KP():
     res = askfloat("设置KP", "将Kp增益设置为：")
     command = "PP"+str(res)
@@ -220,6 +205,23 @@ def do_job(x):  #处理C字头命令
     cmd = "C"+x
     socket_tcp.send(cmd.encode('utf-8')) 
 
+def command_up():
+    socket_tcp.send("MF{0}F{1}".format(standard_command(l_command)[1:],standard_command(r_command)[1:]).encode('utf-8')) 
+def command_down():
+    socket_tcp.send('MB{0}B{0}'.format(standard_command(l_command)[1:],standard_command(r_command)[1:]).encode('utf-8')) 
+def command_left():
+    socket_tcp.send('MB{0}F{0}'.format(standard_command(l_command)[1:],standard_command(r_command)[1:]).encode('utf-8'))
+def command_right():
+    socket_tcp.send('MF{0}B{0}'.format(standard_command(l_command)[1:],standard_command(r_command)[1:]).encode('utf-8'))
+def command_stop():
+    socket_tcp.send(b'MF000F000')
+def command_auto():
+    socket_tcp.send(b'AF100F100')
+def command_record():
+    socket_tcp.send(b'IF100F100')
+def command_stop_record():
+    socket_tcp.send(b'OF100F100')    
+
 def hit_me():
     global is_conneted
     if is_conneted == False:
@@ -240,10 +242,17 @@ botton_frame.pack()
 botton_estabilish = tk.Button(botton_frame, text='建立连接', font=('黑体', 6), width=10, height=1, command=hit_me)
 botton_close = tk.Button(botton_frame, text='断开连接', font=('黑体', 6), width=10, height=1, command=close_tcplink)
 botton_auto = tk.Button(botton_frame, text='自动模式', font=('黑体', 6), width=10, height=1, command=command_auto)
-
 botton_estabilish.pack(side="left")
 botton_close.pack(side="left")
 botton_auto.pack()
+
+botton_frame2 = tk.Frame(root)
+botton_frame2.pack()
+botton_record = tk.Button(botton_frame2, text='开始采集', font=('黑体', 6), width=10, height=1, command=command_record)
+botton_stop_record = tk.Button(botton_frame2, text='停止采集', font=('黑体', 6), width=10, height=1, command=command_stop_record)
+botton_record.pack(side="left")
+botton_stop_record.pack(side="left")
+
 l = tk.Label(root, width=10, height=1, text=" ")
 l.pack()
 
@@ -261,15 +270,15 @@ arrow_frame0.pack(side="left")
 arrow_frame1.pack(side="left")
 arrow_frame2.pack(side="right")
 img_left = tk.PhotoImage(file='left.png') 
-arrow_left = tk.Button(arrow_frame0, image=img_left, width = 120,height=120, command=command_left).pack(side="left")
+arrow_left = tk.Button(arrow_frame0, image=img_left, width = 12,height=12, command=command_left).pack(side="left")
 img_up = tk.PhotoImage(file='up.png') 
-arrow_up = tk.Button(arrow_frame1, image=img_up,width = 120,height=120,  command=command_up).pack()
+arrow_up = tk.Button(arrow_frame1, image=img_up,width = 12,height=12,  command=command_up).pack()
 img_stop = tk.PhotoImage(file='stop.png') 
-arrow_stop = tk.Button(arrow_frame1, image=img_stop,width = 120,height=120,  command=command_stop).pack()
+arrow_stop = tk.Button(arrow_frame1, image=img_stop,width = 12,height=12,  command=command_stop).pack()
 img_down = tk.PhotoImage(file='down.png') 
-arrow_dowm = tk.Button(arrow_frame1, image=img_down,width = 120,height=120,  command=command_down).pack()
+arrow_dowm = tk.Button(arrow_frame1, image=img_down,width = 12,height=12,  command=command_down).pack()
 img_right = tk.PhotoImage(file='right.png') 
-arrow_right = tk.Button(arrow_frame2, image=img_right,width = 120,height=120,  command=command_right).pack(side="right")
+arrow_right = tk.Button(arrow_frame2, image=img_right,width = 12,height=12,  command=command_right).pack(side="right")
 
 l = tk.Label(root, width=10, height=1, text=" ")
 l.pack()

@@ -1,13 +1,11 @@
-from MotorDriver import MotorDriver
+"""Sample code and test for adafruit_in219"""
+
 import time
 import board
 from adafruit_ina219 import ADCResolution, BusVoltageRange, INA219
 
-Motor = MotorDriver()
 
 i2c_bus = board.I2C()
-
-k = 0
 
 ina1 = INA219(i2c_bus,addr=0x40)
 ina2 = INA219(i2c_bus,addr=0x41)
@@ -60,11 +58,5 @@ while True:
     print("PSU Voltage:{:6.3f}V    Shunt Voltage:{:9.6f}V    Load Voltage:{:6.3f}V    Power:{:9.6f}W    Current:{:9.6f}A".format((bus_voltage4 + shunt_voltage4),(shunt_voltage4),(bus_voltage4),(power4),(current3/1000)))
     print("")
     print("")
-    if k%2:
-        Motor.MotorRun(0, 'forward', 100)
-        Motor.MotorRun(1, 'forward', -100)
-    else: 
-        Motor.MotorRun(0, 'forward', 0)
-        Motor.MotorRun(1, 'forward', 0)
-    k += 1
     time.sleep(1)
+

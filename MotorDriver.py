@@ -7,7 +7,7 @@ Dir = [
     'forward',
     'backward',
 ]
-pwm = PCA9685(0x40, debug=False)
+pwm = PCA9685(0x46, debug=False)
 pwm.setPWMFreq(800)
 
 class MotorDriver():

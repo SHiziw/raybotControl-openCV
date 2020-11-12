@@ -263,9 +263,11 @@ def tcplink(sock, addr):
                     sock.close()
                 elif head_command[0] == "I":
                     is_saving = True
+                    global_message = "开始采集"
                     #开始功率采集写入
                 elif head_command[0] == "O":    
                     is_saving = False
+                    global_message = "停止采集" 
                     #停止功率采集写入
                 else:
                     cmd_finished = data.decode('utf-8') + ' the data has been broken during transform!'
@@ -284,6 +286,7 @@ def tcplink(sock, addr):
 
 def data_saving():
     global is_saving
+    global global_message
     while True:
         if  is_saving:
             with open("/home/pi/raybotControl/power_{}.csv".format(int(round(time.time()*1000))),"w", newline='') as csvfile: 
@@ -314,6 +317,7 @@ def data_saving():
     
                     writer.writerow([int(round(time.time()*1000))-t,bus_voltage1, shunt_voltage1, power1, current1, bus_voltage2,shunt_voltage2,power2,current2])
                     time.sleep(0.1)
+            global_message = "文件写入完成{0}".format(time.asctime(time.localtime(time.time()))) # 存在显示不及时的问题 TO-DO
 
 #开启视觉伺服控制线程
 t2 = threading.Thread(name="Opencv_PID", target=visual_servo)

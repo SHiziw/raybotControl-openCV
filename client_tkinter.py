@@ -40,10 +40,10 @@ server_addr = (SERVER_IP, SERVER_PORT)
 # waiting for a recieve from server.
 is_conneted = False
 received_data = "no data received..."
-l_command = "0"
-l_command_old = "0" 
-r_command = "0"
-r_command_old = "0" 
+l_command = "100"
+l_command_old = "100" 
+r_command = "100"
+r_command_old = "100" 
 socket_tcp = None
 
 context = zmq.Context()

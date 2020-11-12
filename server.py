@@ -22,17 +22,17 @@ import cv2
 import zmq
 import base64
 import numpy as np
-
 import time
 import csv
-import board
-from adafruit_ina219 import ADCResolution, BusVoltageRange, INA219
 import socket
-import time
 import sys
 import threading
+
+import board
+from adafruit_ina219 import ADCResolution, BusVoltageRange, INA219
 from MotorDriver import MotorDriver
 from RayPID import PID
+
 lock = threading.Lock()
 
 # define host ip: Rpi's IP, if you want to use frp, you should set IP to 127.0.0.1
@@ -68,7 +68,7 @@ global_color = ""
 is_saving = False
 
 
-i2c_bus = board.I2C()
+i2c_bus = board.I2C() # 配置电流功率检测版
 
 ina1 = INA219(i2c_bus,addr=0x40)
 ina2 = INA219(i2c_bus,addr=0x41)
@@ -144,6 +144,7 @@ def output_handle(output):
         Motor.MotorRun(0, 'forward', -r_speed)
         Motor.MotorRun(1, 'forward', -l_speed)
 # visual servo control and frame transform powered by openCV.
+
 def visual_servo():
     global auto_tracer
     global global_message
@@ -262,9 +263,10 @@ def tcplink(sock, addr):
                     sock.close()
                 elif head_command[0] == "I":
                     is_saving = True
-
+                    #开始功率采集写入
                 elif head_command[0] == "O":    
                     is_saving = False
+                    #停止功率采集写入
                 else:
                     cmd_finished = data.decode('utf-8') + ' the data has been broken during transform!'
                     sock.send(cmd_finished.encode('utf-8'))
@@ -275,10 +277,11 @@ def tcplink(sock, addr):
                 lock.release()
 
         except Exception :
-            print("tcp connect closed.")
+            print("tcp connect closed. error.")
             auto_tracer = False
             sock.close()
             break
+
 def data_saving():
     global is_saving
     while True:
@@ -286,6 +289,8 @@ def data_saving():
             with open("/home/pi/raybotControl/power_{}.csv".format(int(round(time.time()*1000))),"w", newline='') as csvfile: 
                 writer = csv.writer(csvfile)
                 t=int(round(time.time()*1000))
+                writer.writerow([time.asctime(time.localtime(t/1000)),t])
+                writer.writerow(["经过毫秒数","总线电压1", "分压电压1", "功率1", "电流1", "总线电压2", "分压电压2", "功率2", "电流2"])
                 while is_saving:
                     bus_voltage1 = ina1.bus_voltage        # voltage on V- (load side)
                     shunt_voltage1 = ina1.shunt_voltage    # voltage between V+ and V- across the shunt

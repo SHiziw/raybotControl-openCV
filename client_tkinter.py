@@ -13,8 +13,8 @@
 # title           :client_tkinter.py
 # description     :多平台tcp控制客户端，包括了指令发送，图像接收，参数回传，GUI界面
 # author          :Vic Lee 
-# date            :20200609
-# version         :0.2
+# date            :20201113
+# version         :0.3
 # notes           :
 # python_version  :3.8.3
 # ==============================================================================

@@ -13,8 +13,8 @@
 # title           :server.py
 # description     :树莓派控制程序入口，包括了指令接收，图像回传，电机控制，视觉PID伺服控制
 # author          :Vic Lee 
-# date            :20200609
-# version         :0.2
+# date            :20201113
+# version         :0.3
 # notes           :
 # python_version  :3.8.3
 # ==============================================================================

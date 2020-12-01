@@ -33,8 +33,8 @@ import tkinter as tk
 from tkinter.simpledialog import askstring, askinteger, askfloat
 
 #RPi's IP
-SERVER_IP = "192.168.43.247"
-#SERVER_IP = "192.168.50.99"
+#SERVER_IP = "192.168.43.247"
+SERVER_IP = "192.168.50.99"
 SERVER_PORT = 1811
 server_addr = (SERVER_IP, SERVER_PORT)
 # waiting for a recieve from server.
@@ -46,10 +46,10 @@ r_command = "100"
 r_command_old = "100" 
 socket_tcp = None
 
-context = zmq.Context()
-footage_socket = context.socket(zmq.SUB)
-footage_socket.connect('tcp://%s:5555'%SERVER_IP)
-footage_socket.setsockopt(zmq.SUBSCRIBE,''.encode('utf-8'))  # 接收所有消息
+#context = zmq.Context()
+#footage_socket = context.socket(zmq.SUB)
+#footage_socket.connect('tcp://%s:5555'%SERVER_IP)
+#footage_socket.setsockopt(zmq.SUBSCRIBE,''.encode('utf-8'))  # 接收所有消息
 
 
 def read_from_server():
@@ -135,15 +135,15 @@ def sync_command():
 
     data_from_raybot3.set(received_data)
     
-    frame = footage_socket.recv_string()
-    img = base64.b64decode(frame)
-    npimg = np.frombuffer(img, dtype=np.uint8)
-    source = cv2.imdecode(npimg, 1)
-    cv2image = cv2.cvtColor(source, cv2.COLOR_BGR2RGB)
-    cv2image = cv2.resize(cv2image, (800,600), interpolation = cv2.INTER_AREA)
-    img = Image.fromarray(cv2image)
-    imgtk = ImageTk.PhotoImage(image=img)
-    lmain.configure(image=imgtk)
+    #frame = footage_socket.recv_string()
+    #img = base64.b64decode(frame)
+    #npimg = np.frombuffer(img, dtype=np.uint8)
+    #source = cv2.imdecode(npimg, 1)
+    #cv2image = cv2.cvtColor(source, cv2.COLOR_BGR2RGB)
+    #cv2image = cv2.resize(cv2image, (800,600), interpolation = cv2.INTER_AREA)
+    #img = Image.fromarray(cv2image)
+    #imgtk = ImageTk.PhotoImage(image=img)
+    #lmain.configure(image=imgtk)
     lmain.update()
     
     if is_conneted == False:
@@ -270,15 +270,15 @@ arrow_frame0.pack(side="left")
 arrow_frame1.pack(side="left")
 arrow_frame2.pack(side="right")
 img_left = tk.PhotoImage(file='left.png') 
-arrow_left = tk.Button(arrow_frame0, image=img_left, width = 120,height=120, command=command_left).pack(side="left")
+arrow_left = tk.Button(arrow_frame0, image=img_left, width = 12,height=12, command=command_left).pack(side="left")
 img_up = tk.PhotoImage(file='up.png') 
-arrow_up = tk.Button(arrow_frame1, image=img_up,width = 120,height=120,  command=command_up).pack()
+arrow_up = tk.Button(arrow_frame1, image=img_up,width = 12,height=12,  command=command_up).pack()
 img_stop = tk.PhotoImage(file='stop.png') 
-arrow_stop = tk.Button(arrow_frame1, image=img_stop,width = 120,height=120,  command=command_stop).pack()
+arrow_stop = tk.Button(arrow_frame1, image=img_stop,width = 12,height=12,  command=command_stop).pack()
 img_down = tk.PhotoImage(file='down.png') 
-arrow_dowm = tk.Button(arrow_frame1, image=img_down,width = 120,height=120,  command=command_down).pack()
+arrow_dowm = tk.Button(arrow_frame1, image=img_down,width = 12,height=12,  command=command_down).pack()
 img_right = tk.PhotoImage(file='right.png') 
-arrow_right = tk.Button(arrow_frame2, image=img_right,width = 120,height=120,  command=command_right).pack(side="right")
+arrow_right = tk.Button(arrow_frame2, image=img_right,width = 12,height=12,  command=command_right).pack(side="right")
 
 l = tk.Label(root, width=10, height=1, text=" ")
 l.pack()

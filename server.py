@@ -50,9 +50,9 @@ socket_tcp.bind(host_addr)
 socket_tcp.listen(3)
 # 5.handle
 
-context = zmq.Context() #init tcp trans to send opencv catched camera frame.
-footage_socket = context.socket(zmq.PUB) # zmq的广播模式
-footage_socket.bind("tcp://*:5555")
+#context = zmq.Context() #init tcp trans to send opencv catched camera frame.
+#footage_socket = context.socket(zmq.PUB) # zmq的广播模式
+#footage_socket.bind("tcp://*:5555")
 
 # control 2 motor flags
 Motor = MotorDriver()
@@ -197,7 +197,7 @@ def visual_servo():
             pass
         encoded, buffer = cv2.imencode('.jpg', target) #sending frame_image.
         jpg_as_text = base64.b64encode(buffer)
-        footage_socket.send(jpg_as_text)
+        #footage_socket.send(jpg_as_text)
 
         if (auto_tracer):
             cnts = cv2.findContours(mask3.copy(),cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
@@ -320,8 +320,8 @@ def data_saving():
             global_message = "文件写入完成{0}".format(time.asctime(time.localtime(time.time()))) # 存在显示不及时的问题 TO-DO
 
 #开启视觉伺服控制线程
-t2 = threading.Thread(name="Opencv_PID", target=visual_servo)
-t2.start()
+#t2 = threading.Thread(name="Opencv_PID", target=visual_servo)
+#t2.start()
 t3 = threading.Thread(name="data_saving", target=data_saving)
 t3.start()
 while True:

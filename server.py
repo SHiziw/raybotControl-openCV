@@ -9,12 +9,14 @@
 #C部分：C+[cmd]
 #       cmd列表：L陆地模式，W海洋模式，T原色摄像头 C滤色后摄像头
 #Q部分：退出，断开tcp连接
+#I部分：开启功率采集
+#O部分：关闭并保存功率采集
 #S部分：直接停止
 # title           :server.py
 # description     :树莓派控制程序入口，包括了指令接收，图像回传，电机控制，视觉PID伺服控制
 # author          :Vic Lee 
 # date            :20201113
-# version         :0.3
+# version         :0.4
 # notes           :
 # python_version  :3.8.3
 # ==============================================================================
@@ -36,8 +38,8 @@ from RayPID import PID
 lock = threading.Lock()
 
 # define host ip: Rpi's IP, if you want to use frp, you should set IP to 127.0.0.1
-# HOST_IP = "192.168.43.247"
-HOST_IP = "192.168.50.99"
+HOST_IP = "192.168.43.247"
+#HOST_IP = "192.168.50.99"
 HOST_PORT = 1811
 print("Starting socket: TCP...")
 # 1.create socket object:socket=socket.socket(family,type)
@@ -144,7 +146,7 @@ def output_handle(output):
         Motor.MotorRun(0, 'forward', -r_speed)
         Motor.MotorRun(1, 'forward', -l_speed)
 # visual servo control and frame transform powered by openCV.
-
+'''
 def visual_servo():
     global auto_tracer
     global global_message
@@ -215,7 +217,7 @@ def visual_servo():
 
             if cv2.waitKey(1) == ord('q'):
                 break
-            
+ '''           
 
 def tcplink(sock, addr):
     global auto_tracer
@@ -293,7 +295,7 @@ def data_saving():
                 writer = csv.writer(csvfile)
                 t=int(round(time.time()*1000))
                 writer.writerow([time.asctime(time.localtime(t/1000)),t])
-                writer.writerow(["经过毫秒数","总线电压1", "分压电压1", "功率1", "电流1", "总线电压2", "分压电压2", "功率2", "电流2"])
+                writer.writerow(["passed_time","bus_voltage1", "shunt_voltage1", "power1", "current1", "bus_voltage2", "shunt_voltage2", "power2", "current2"])
                 while is_saving:
                     bus_voltage1 = ina1.bus_voltage        # voltage on V- (load side)
                     shunt_voltage1 = ina1.shunt_voltage    # voltage between V+ and V- across the shunt

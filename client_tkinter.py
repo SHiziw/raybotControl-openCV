@@ -9,32 +9,30 @@
 #C部分：C+[cmd]
 #       cmd列表：L陆地模式，W海洋模式，T原色摄像头 C滤色后摄像头
 #Q部分：退出，断开tcp连接
+#I部分：开启功率采集
+#O部分：关闭并保存功率采集
 #S部分：直接停止
 # title           :client_tkinter.py
 # description     :多平台tcp控制客户端，包括了指令发送，图像接收，参数回传，GUI界面
 # author          :Vic Lee 
 # date            :20201113
-# version         :0.3
+# version         :0.4
 # notes           :
 # python_version  :3.8.3
 # ==============================================================================
 
-import cv2
-import zmq
-import base64
 import numpy as np
 from PIL import ImageTk, Image
 
 import socket
 import time
-import sys
 import threading
 import tkinter as tk
 from tkinter.simpledialog import askstring, askinteger, askfloat
 
 #RPi's IP
-#SERVER_IP = "192.168.43.247"
-SERVER_IP = "192.168.50.99"
+SERVER_IP = "192.168.43.247"
+#SERVER_IP = "192.168.50.99"
 SERVER_PORT = 1811
 server_addr = (SERVER_IP, SERVER_PORT)
 # waiting for a recieve from server.
@@ -270,15 +268,15 @@ arrow_frame0.pack(side="left")
 arrow_frame1.pack(side="left")
 arrow_frame2.pack(side="right")
 img_left = tk.PhotoImage(file='left.png') 
-arrow_left = tk.Button(arrow_frame0, image=img_left, width = 12,height=12, command=command_left).pack(side="left")
+arrow_left = tk.Button(arrow_frame0, image=img_left, width = 120,height=120, command=command_left).pack(side="left")
 img_up = tk.PhotoImage(file='up.png') 
-arrow_up = tk.Button(arrow_frame1, image=img_up,width = 12,height=12,  command=command_up).pack()
+arrow_up = tk.Button(arrow_frame1, image=img_up,width = 120,height=120,  command=command_up).pack()
 img_stop = tk.PhotoImage(file='stop.png') 
-arrow_stop = tk.Button(arrow_frame1, image=img_stop,width = 12,height=12,  command=command_stop).pack()
+arrow_stop = tk.Button(arrow_frame1, image=img_stop,width = 120,height=120,  command=command_stop).pack()
 img_down = tk.PhotoImage(file='down.png') 
-arrow_dowm = tk.Button(arrow_frame1, image=img_down,width = 12,height=12,  command=command_down).pack()
+arrow_dowm = tk.Button(arrow_frame1, image=img_down,width = 120,height=120,  command=command_down).pack()
 img_right = tk.PhotoImage(file='right.png') 
-arrow_right = tk.Button(arrow_frame2, image=img_right,width = 12,height=12,  command=command_right).pack(side="right")
+arrow_right = tk.Button(arrow_frame2, image=img_right,width = 120,height=120,  command=command_right).pack(side="right")
 
 l = tk.Label(root, width=10, height=1, text=" ")
 l.pack()

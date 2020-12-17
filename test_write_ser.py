@@ -27,6 +27,7 @@ def main():
 if __name__ == "__main__":
     try:
         t=threading.Thread(name="serial_reading_thread", target=reading)
+        t.start()
         main()
     except KeyboardInterrupt:
         if ser != None:

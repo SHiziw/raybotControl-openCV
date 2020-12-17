@@ -39,10 +39,10 @@ root.attributes('-fullscreen', True)
 botton_frame = tk.Frame(root)
 botton_frame.pack()
 
-botton_estabilish = tk.Button(botton_frame, text='建立连接', font=('黑体', 6), width=10, height=1, command=root.quit)
+botton_estabilish = tk.Button(botton_frame, text='建立连接', font=('黑体', 6), width=10, height=2, command=root.quit)
 botton_estabilish.pack(side="left")
 
-botton_send = tk.Button(botton_frame, text='发送命令', font=('黑体', 6), width=10, height=1, command=hit_me)
+botton_send = tk.Button(botton_frame, text='发送命令', font=('黑体', 6), width=10, height=2, command=hit_me)
 botton_send.pack(side="right")
 
 root.mainloop()

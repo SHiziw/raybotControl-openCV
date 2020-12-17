@@ -1,30 +1,19 @@
-import serial
+#!/usr/bin/python3
+import os, serial
 import time
 
 ser = serial.Serial("/dev/ttyAMA0", 9600)
-
+ser.flushInput()  # 清空缓冲区
 
 def main():
     while True:
-        recv = get_recv()
-        if recv != None:
-            print(recv)
-            ser.write(recv[0] + "\n")
+        count = ser.inWaiting()
+        if count !=0 :
+            recv = ser.read(ser.in_waiting).decode("UTF-8") 
+            print(time.time()," ---  recv --> ", recv)
         time.sleep(0.1)
-    
-            
-def get_recv():
-    cout = ser.inWaiting()
-    if cout != 0:
-        line = ser.read(cout)
-        recv = str.split(line)
-        ser.reset_input_buffer()
-        return recv
- 
-   
-if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        if ser != None:
-            ser.close()
+
+
+
+if __name__ == '__main__':
+    main()

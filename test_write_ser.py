@@ -1,4 +1,5 @@
-import serial
+#!/usr/bin/python3
+import os, serial
 import time
 
 ser = serial.Serial("/dev/ttyAMA0", 9600)
@@ -8,7 +9,7 @@ def main():
     while True:
         send_thing = input()
         if send_thing != None:
-            print("sending {0}".format(send_thing))
+            print("sending: {0}".format(send_thing))
             ser.write(send_thing)
         time.sleep(0.1)
    

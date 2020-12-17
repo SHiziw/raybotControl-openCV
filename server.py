@@ -38,7 +38,7 @@ from RayPID import PID
 lock = threading.Lock()
 
 # define host ip: Rpi's IP, if you want to use frp, you should set IP to 127.0.0.1
-HOST_IP = "192.168.43.247"
+HOST_IP = "192.168.43.35"
 #HOST_IP = "192.168.50.99"
 HOST_PORT = 1811
 print("Starting socket: TCP...")

@@ -9,12 +9,14 @@
 #C部分：C+[cmd]
 #       cmd列表：L陆地模式，W海洋模式，T原色摄像头 C滤色后摄像头
 #Q部分：退出，断开tcp连接
+#I部分：开启功率采集
+#O部分：关闭并保存功率采集
 #S部分：直接停止
 # title           :server.py
 # description     :树莓派控制程序入口，包括了指令接收，图像回传，电机控制，视觉PID伺服控制
 # author          :Vic Lee 
-# date            :20200609
-# version         :0.2
+# date            :20201113
+# version         :0.4
 # notes           :
 # python_version  :3.8.3
 # ==============================================================================
@@ -22,22 +24,22 @@ import cv2
 import zmq
 import base64
 import numpy as np
-
 import time
 import csv
-import board
-from adafruit_ina219 import ADCResolution, BusVoltageRange, INA219
 import socket
-import time
 import sys
 import threading
+
+import board
+from adafruit_ina219 import ADCResolution, BusVoltageRange, INA219
 from MotorDriver import MotorDriver
 from RayPID import PID
+
 lock = threading.Lock()
 
 # define host ip: Rpi's IP, if you want to use frp, you should set IP to 127.0.0.1
-# HOST_IP = "192.168.43.247"
-HOST_IP = "192.168.50.99"
+HOST_IP = "192.168.43.35"
+#HOST_IP = "192.168.50.99"
 HOST_PORT = 1811
 print("Starting socket: TCP...")
 # 1.create socket object:socket=socket.socket(family,type)
@@ -50,9 +52,9 @@ socket_tcp.bind(host_addr)
 socket_tcp.listen(3)
 # 5.handle
 
-context = zmq.Context() #init tcp trans to send opencv catched camera frame.
-footage_socket = context.socket(zmq.PUB) # zmq的广播模式
-footage_socket.bind("tcp://*:5555")
+#context = zmq.Context() #init tcp trans to send opencv catched camera frame.
+#footage_socket = context.socket(zmq.PUB) # zmq的广播模式
+#footage_socket.bind("tcp://*:5555")
 
 # control 2 motor flags
 Motor = MotorDriver()
@@ -68,7 +70,7 @@ global_color = ""
 is_saving = False
 
 
-i2c_bus = board.I2C()
+i2c_bus = board.I2C() # 配置电流功率检测版
 
 ina1 = INA219(i2c_bus,addr=0x40)
 ina2 = INA219(i2c_bus,addr=0x41)
@@ -144,6 +146,7 @@ def output_handle(output):
         Motor.MotorRun(0, 'forward', -r_speed)
         Motor.MotorRun(1, 'forward', -l_speed)
 # visual servo control and frame transform powered by openCV.
+'''
 def visual_servo():
     global auto_tracer
     global global_message
@@ -196,7 +199,7 @@ def visual_servo():
             pass
         encoded, buffer = cv2.imencode('.jpg', target) #sending frame_image.
         jpg_as_text = base64.b64encode(buffer)
-        footage_socket.send(jpg_as_text)
+        #footage_socket.send(jpg_as_text)
 
         if (auto_tracer):
             cnts = cv2.findContours(mask3.copy(),cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
@@ -214,7 +217,7 @@ def visual_servo():
 
             if cv2.waitKey(1) == ord('q'):
                 break
-            
+ '''           
 
 def tcplink(sock, addr):
     global auto_tracer
@@ -262,9 +265,12 @@ def tcplink(sock, addr):
                     sock.close()
                 elif head_command[0] == "I":
                     is_saving = True
-
+                    global_message = "开始采集"
+                    #开始功率采集写入
                 elif head_command[0] == "O":    
                     is_saving = False
+                    global_message = "停止采集" 
+                    #停止功率采集写入
                 else:
                     cmd_finished = data.decode('utf-8') + ' the data has been broken during transform!'
                     sock.send(cmd_finished.encode('utf-8'))
@@ -275,17 +281,21 @@ def tcplink(sock, addr):
                 lock.release()
 
         except Exception :
-            print("tcp connect closed.")
+            print("tcp connect closed. error.")
             auto_tracer = False
             sock.close()
             break
+
 def data_saving():
     global is_saving
+    global global_message
     while True:
         if  is_saving:
             with open("/home/pi/raybotControl/power_{}.csv".format(int(round(time.time()*1000))),"w", newline='') as csvfile: 
                 writer = csv.writer(csvfile)
                 t=int(round(time.time()*1000))
+                writer.writerow([time.asctime(time.localtime(t/1000)),t])
+                writer.writerow(["passed_time","bus_voltage1", "shunt_voltage1", "power1", "current1", "bus_voltage2", "shunt_voltage2", "power2", "current2"])
                 while is_saving:
                     bus_voltage1 = ina1.bus_voltage        # voltage on V- (load side)
                     shunt_voltage1 = ina1.shunt_voltage    # voltage between V+ and V- across the shunt
@@ -309,10 +319,11 @@ def data_saving():
     
                     writer.writerow([int(round(time.time()*1000))-t,bus_voltage1, shunt_voltage1, power1, current1, bus_voltage2,shunt_voltage2,power2,current2])
                     time.sleep(0.1)
+            global_message = "文件写入完成{0}".format(time.asctime(time.localtime(time.time()))) # 存在显示不及时的问题 TO-DO
 
 #开启视觉伺服控制线程
-t2 = threading.Thread(name="Opencv_PID", target=visual_servo)
-t2.start()
+#t2 = threading.Thread(name="Opencv_PID", target=visual_servo)
+#t2.start()
 t3 = threading.Thread(name="data_saving", target=data_saving)
 t3.start()
 while True:

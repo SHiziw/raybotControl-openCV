@@ -16,7 +16,7 @@
 # description     :多平台tcp控制客户端，包括了指令发送，图像接收，参数回传，GUI界面
 # author          :Vic Lee 
 # date            :20201113
-# version         :0.4
+# version         :1.0
 # notes           :
 # python_version  :3.8.3
 # ==============================================================================
@@ -31,8 +31,8 @@ import tkinter as tk
 from tkinter.simpledialog import askstring, askinteger, askfloat
 
 #RPi's IP
-SERVER_IP = "192.168.43.35"
-#SERVER_IP = "192.168.50.99"
+#SERVER_IP = "192.168.43.35"
+SERVER_IP = "192.168.50.99"
 SERVER_PORT = 1811
 server_addr = (SERVER_IP, SERVER_PORT)
 # waiting for a recieve from server.

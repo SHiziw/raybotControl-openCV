@@ -20,7 +20,7 @@
 # notes           :
 # python_version  :3.8.3
 # ==============================================================================
-debug = True
+debug = False
 
 import tkinter as tk
 if not debug:
@@ -29,8 +29,7 @@ if not debug:
 
 def hit_me():
     if not debug:    
-        ser.write("MA000B000".encode("UTF-8"))
-
+        ser.write("MF000F000".encode("UTF-8"))
 
 root= tk.Tk()
 root.title('RB3tcp控制端')

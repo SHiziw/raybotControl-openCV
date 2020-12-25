@@ -49,8 +49,8 @@ is_saving = False
 command_item = ""
 
 # define host ip: Rpi's IP, if you want to use frp, you should set IP to 127.0.0.1
-HOST_IP = "192.168.43.35"
-#HOST_IP = "192.168.50.99"
+#HOST_IP = "192.168.43.35"
+HOST_IP = "192.168.50.99"
 HOST_PORT = 1811
 print("Starting socket: TCP...")
 # 1.create socket object:socket=socket.socket(family,type)
@@ -275,7 +275,7 @@ def command_handler():
                 else:
                     global_message = command_item + ' the data has been broken during transform!'
             command_item = ""
-
+            time.sleep(0.01)
 
         except Exception :
             print("command handler: error.")
@@ -286,8 +286,8 @@ def LFC_reader():
     global command_item
     while True:
         count = ser_LFC.inWaiting()
-        if count !=0 :
-            command_item = ser_LFC.read(ser_LFC.in_waiting).decode("UTF-8") 
+        if count >8 : # if string long enough
+            command_item = ser_LFC.read(9).decode("UTF-8") # read only one command 
         time.sleep(0.01)
 
 def LFC_writer():
@@ -304,6 +304,7 @@ def LFC_writer():
                 ser_LFC.write(global_message.encode("UTF-8"))
                 global_message = "NaN"
                 lock.release()
+            time.sleep(0.01)
         except Exception :
             print("writer: LFC connect closed. error.")
             break
@@ -326,6 +327,7 @@ def tcp_reader(tcp_client):
     while True:
         try:
             command_item = tcp_client.recv(128).decode('utf-8')
+            time.sleep(0.01)
         except Exception :
             print("reader: tcp connect closed. error.")
             tcp_client.shutdown(2)
@@ -348,6 +350,7 @@ def tcp_writer(tcp_client):
                 tcp_client.send(global_message.encode('utf-8'))
                 global_message = "NaN"
                 lock.release()
+            time.sleep(0.01)
         except Exception :
             print("writer: tcp connect closed. error.")
             break
@@ -386,6 +389,7 @@ def data_saving():
                     writer.writerow([int(round(time.time()*1000))-t,bus_voltage1, shunt_voltage1, power1, current1, bus_voltage2,shunt_voltage2,power2,current2])
                     time.sleep(0.1)
             global_message = "文件写入完成{0}".format(time.asctime(time.localtime(time.time()))) # 存在显示不及时的问题 TO-DO
+        time.sleep(0.01)
 
 t1=threading.Thread(name="serial_reading_thread", target=LFC_reader) 
 t1.start()

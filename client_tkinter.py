@@ -31,8 +31,8 @@ import tkinter as tk
 from tkinter.simpledialog import askstring, askinteger, askfloat
 
 #RPi's IP
-SERVER_IP = "192.168.43.35"
-#SERVER_IP = "192.168.50.99"
+#SERVER_IP = "192.168.43.35"
+SERVER_IP = "192.168.50.99"
 SERVER_PORT = 1811
 server_addr = (SERVER_IP, SERVER_PORT)
 # waiting for a recieve from server.

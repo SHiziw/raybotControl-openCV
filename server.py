@@ -16,7 +16,7 @@
 # description     :树莓派控制程序入口，包括了指令接收，图像回传，电机控制，视觉PID伺服控制
 # author          :Vic Lee 
 # date            :20201113
-# version         :0.4
+# version         :1.0
 # notes           :
 # python_version  :3.8.3
 # ==============================================================================
@@ -27,15 +27,26 @@ import numpy as np
 import time
 import csv
 import socket
-import sys
+import serial
 import threading
 
 import board
 from adafruit_ina219 import ADCResolution, BusVoltageRange, INA219
+
 from MotorDriver import MotorDriver
 from RayPID import PID
 
 lock = threading.Lock()
+
+#Globale variables
+l_speed = 100
+r_speed = 100
+global_message = ""
+auto_tracer = False # a controlable flag.
+land_mode = False
+global_color = ""
+is_saving = False
+command_item = ""
 
 # define host ip: Rpi's IP, if you want to use frp, you should set IP to 127.0.0.1
 HOST_IP = "192.168.43.35"
@@ -58,18 +69,10 @@ socket_tcp.listen(3)
 
 # control 2 motor flags
 Motor = MotorDriver()
-#a PID controler.
+# a PID controler.
 RPID = PID(0.006, 0.0001, 0.005)
-#Globale variables
-l_speed = 100
-r_speed = 100
-global_message = ""
-auto_tracer = False # a controlable flag.
-land_mode = False
-global_color = ""
-is_saving = False
-
-
+# use UART to connect LFC chip
+ser_LFC = serial.Serial("/dev/ttyAMA0", 9600)
 i2c_bus = board.I2C() # 配置电流功率检测版
 
 ina1 = INA219(i2c_bus,addr=0x40)
@@ -219,50 +222,48 @@ def visual_servo():
                 break
  '''           
 
-def tcplink(sock, addr):
+def command_handler():
     global auto_tracer
     global global_message
     global l_speed
     global r_speed
     global is_saving
+    global command_item
     while True:
         try:
-            # all data is in data:
-            data = sock.recv(128)
-            full_command = data.decode('utf-8')
-            head_command = full_command[0:9]
-            # if you want to change the data, change here above.
-            if len(data) > 0:
-                print("Received:%s" % data.decode('utf-8'))
+            if len(command_item) > 0:
+                full_command = command_item
+                head_command = full_command[0:9]
+                 # if you want to change the data, change here above.
+                print("Received:%s" % command_item)
                 if head_command[0] == "A":
                     #转到自动模式
                     l_speed = 100
                     r_speed = 100
                     auto_tracer = True
-                    sock.send(b'now auto sailing.')
+                    global_message = 'now auto sailing.'
                 elif head_command[0] == "P":
                     #设置PID
                     set_PID(full_command)
-                    sock.send(b'setting PID..')
+                    global_message = 'setting PID..'
                 elif head_command[0] == "C":
                     #设置PID
                     set_color(full_command)
-                    sock.send(b'setting color..')
+                    global_message = 'setting color..'
                 elif head_command[0] == "M":
                     auto_tracer = False
                     Motor.run_at_speed(head_command)
-                    cmd_finished = data.decode('utf-8') + ' already has been executed.'
-                    sock.send(cmd_finished.encode('utf-8'))
+                    global_message = command_item + ' already has been executed.'
                 elif head_command[0] == "S":
                     #停机
                     auto_tracer = False
                     Motor.stop()
-                    sock.send(b'now stopped.')
+                    global_message = 'now stopped.'
                 elif head_command[0] == "Q":
                     Motor.stop()
                     #退出连接，请检查还需要补充吗
                     auto_tracer = False
-                    sock.close()
+                    global_message = "closed"
                 elif head_command[0] == "I":
                     is_saving = True
                     global_message = "开始采集"
@@ -272,18 +273,83 @@ def tcplink(sock, addr):
                     global_message = "停止采集" 
                     #停止功率采集写入
                 else:
-                    cmd_finished = data.decode('utf-8') + ' the data has been broken during transform!'
-                    sock.send(cmd_finished.encode('utf-8'))
-            if len(global_message) > 0:
-                lock.acquire()
-                sock.send(global_message.encode('utf-8'))
-                global_message = ""
-                lock.release()
+                    global_message = command_item + ' the data has been broken during transform!'
+            command_item = ""
+
 
         except Exception :
-            print("tcp connect closed. error.")
+            print("command handler: error.")
             auto_tracer = False
-            sock.close()
+            break
+
+def LFC_reader():
+    global command_item
+    while True:
+        count = ser_LFC.inWaiting()
+        if count !=0 :
+            command_item = ser_LFC.read(ser_LFC.in_waiting).decode("UTF-8") 
+        time.sleep(0.01)
+
+def LFC_writer():
+    global global_message
+    while True:
+        try:
+            if global_message == "NaN":
+                pass
+            elif global_message == "closed":
+                global_message = "NaN"
+                break
+            elif len(global_message) > 0:
+                lock.acquire()
+                ser_LFC.write(global_message.encode("UTF-8"))
+                global_message = "NaN"
+                lock.release()
+        except Exception :
+            print("writer: LFC connect closed. error.")
+            break
+
+def tcp_server():
+    i = 0
+    while True:
+       i += 1
+       tcp_client, client_addr = socket_tcp.accept() # blocked point！阻塞式！
+       (client_ip, client_port) = client_addr
+       print("Connection accepted from {0}: {1}.".format(client_ip,client_port))
+       tcp_client.send(b"Welcome to RPi TCP server!")
+       reader = threading.Thread(name="tcp_reader_{}".format(i), target=tcp_reader, args=(tcp_client,))
+       reader.start()
+       writer = threading.Thread(name="tcp_writer_{}".format(i), target=tcp_writer, args=(tcp_client,))
+       writer.start()
+
+def tcp_reader(tcp_client):
+    global command_item
+    while True:
+        try:
+            command_item = tcp_client.recv(128).decode('utf-8')
+        except Exception :
+            print("reader: tcp connect closed. error.")
+            tcp_client.shutdown(2)
+            tcp_client.close()
+            break
+
+def tcp_writer(tcp_client):
+    global global_message
+    while True:
+        try:
+            if global_message == "NaN":
+                pass
+            elif global_message == "closed":
+                global_message = "NaN"
+                tcp_client.shutdown(2)
+                tcp_client.close()
+                break
+            elif len(global_message) > 0:
+                lock.acquire()
+                tcp_client.send(global_message.encode('utf-8'))
+                global_message = "NaN"
+                lock.release()
+        except Exception :
+            print("writer: tcp connect closed. error.")
             break
 
 def data_saving():
@@ -321,31 +387,14 @@ def data_saving():
                     time.sleep(0.1)
             global_message = "文件写入完成{0}".format(time.asctime(time.localtime(time.time()))) # 存在显示不及时的问题 TO-DO
 
-#开启视觉伺服控制线程
-#t2 = threading.Thread(name="Opencv_PID", target=visual_servo)
+t1=threading.Thread(name="serial_reading_thread", target=LFC_reader) 
+t1.start()
+#t2 = threading.Thread(name="Opencv_PID", target=visual_servo)#开启视觉伺服控制线程
 #t2.start()
 t3 = threading.Thread(name="data_saving", target=data_saving)
 t3.start()
-while True:
-    try:
-        # 4.waite for client:connection,address=socket.accept(), 接受一个新连接:
-        socket_con, client_addr = socket_tcp.accept() # blocked point！阻塞式！
-        (client_ip, client_port) = client_addr
-        print("Connection accepted from %s." % client_ip)
-        socket_con.send(b"Welcome to RPi TCP server!")
-        t1 = threading.Thread(name="TCP_control_thread", target=tcplink, args=(socket_con, client_addr))
-        
-        t1.start()
-    except Exception :
-        print("mainthread: tcp connect closed.")
-        auto_tracer = False
-        print("Starting socket again: TCP...")
-        # 1.create socket object:socket=socket.socket(family,type)
-        socket_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        print("TCP server listen @ %s:%d!" % (HOST_IP, HOST_PORT))
-        host_addr = (HOST_IP, HOST_PORT)
-        # 2.bind socket to addr:socket.bind(address)
-        socket_tcp.bind(host_addr)
-        # 3.listen connection request:socket.listen(backlog)
-        socket_tcp.listen(3)
-        # 5.handle
+
+t4 = threading.Thread(name="tcp_server", target=tcp_server)
+t4.start()
+
+command_handler()

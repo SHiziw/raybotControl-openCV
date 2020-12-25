@@ -12,28 +12,31 @@
 #I部分：开启功率采集
 #O部分：关闭并保存功率采集
 #S部分：直接停止
-# title           :client_tkinter.py
-# description     :多平台tcp控制客户端，包括了指令发送，图像接收，参数回传，GUI界面
+# title           :client_tkinter_SBE.py
+# description     :多通讯方式控制客户端，包括了指令发送，图像接收，参数回传，岸基设备GUI界面优化
 # author          :Vic Lee 
 # date            :20201113
-# version         :0.4
+# version         :1.0
 # notes           :
 # python_version  :3.8.3
 # ==============================================================================
+debug = True
 
 import tkinter as tk
-import serial
-
-ser = serial.Serial("/dev/ttyAMA0", 9600)
+if not debug:
+    import serial
+    ser = serial.Serial("/dev/ttyAMA0", 9600)
 
 def hit_me():
-    ser.write("MA000B000".encode("UTF-8"))
+    if not debug:    
+        ser.write("MA000B000".encode("UTF-8"))
 
 
 root= tk.Tk()
 root.title('RB3tcp控制端')
-root.geometry('320x480') # 这里的乘号不是 * ，而是小写英文字母 x
-root.attributes('-fullscreen', True)
+root.geometry('480x320') # 这里的乘号不是 * ，而是小写英文字母 x
+if not debug:
+    root.attributes('-fullscreen', True)
 
 
 botton_frame = tk.Frame(root)

@@ -2,6 +2,5 @@
     "port": "COM5",
     "board": "arduino:avr:nano",
     "configuration": "cpu=atmega328old",
-    "programmer": "AVRISP mkII",
-    "sketch": "ArduinoIMU.ino"
+    "programmer": "AVRISP mkII"
 }

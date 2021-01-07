@@ -1,5 +1,5 @@
 # Function for this platform
-
+Also see:https://www.yuque.com/books/share/6ad4406d-981b-4fd7-b14e-2bd05bdc92dd?# 《Raybot机器人控制平台》
 ## Raybot program on board
 - **server.py** 
 

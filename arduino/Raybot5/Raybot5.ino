@@ -3,6 +3,7 @@
 #include <Servo.h>
 #include <SoftwareSerial.h>
 #include <PID_v1.h>
+#include <EEPROM.h>
 /*
 JY901    UnoR3
 SDA <---> SDA
@@ -10,7 +11,7 @@ SCL <---> SCL
 */
 //Define Variables we'll be connecting to
 double Setpoint, Input, Output;
-double kp, ki, kd;
+float kp, ki, kd;
 static unsigned char receivedCommand[9];
 float *p_encode;
 
@@ -23,8 +24,8 @@ SoftwareSerial LFCserial(9, 10); //定义虚拟串口名为LFCserial,rx为9号�
 
 int leftPos = 0;                     // variable to store the left servo position, expressed by microseconds. 
 int rightPos = 0;                     // variable to store the rihgt servo position, expressed by microseconds. 
-int leftSGap = 10;                   //each step positon change messured in microseconds.
-int rightGap = 10;
+float leftFreq = 1.0;                   //angular velocity, Hz
+float rightFreq = 1.0;
 unsigned long l_previousMillis = 0; 
 unsigned long r_previousMillis = 0; 
 unsigned long now = 0;
@@ -77,7 +78,23 @@ void handleCommand()
     }
     }
 }
+int PIDreadROM(){
+    if (EEPROM.length()<12){
+        //TODO:no data for PID!
+        return -1;
+    }
+    EEPROM.get(0, kp);
+    EEPROM.get(4, ki);
+    EEPROM.get(8, kd);
+    return 1;
 
+}
+int PIDwriteROM(){
+    EEPROM.put(0, kp);
+    EEPROM.put(4, ki);
+    EEPROM.put(8, kd);
+    return 1;
+}
 void setup()
 {
     Serial.begin(9600);
@@ -90,7 +107,7 @@ void setup()
     //initialize the variables we're linked to
     Input = 10.0;     //todo: setting input.
     Setpoint = 100.0; // todo :setting angle.
-    und_PID.SetSampleTime(20);
+    //und_PID.SetSampleTime(20);
 
     //turn the PID on
     und_PID.SetMode(AUTOMATIC);
@@ -110,34 +127,23 @@ void loop()
     handleSpeed(Output);
 
     now = millis();
-    if (now-l_previousMillis > servoDelay){
-        if (leftPos > 2100){
-                
-        }
-        if (leftPos < 900){
-            
-        }
-        leftPos += leftSGap;
+    if (now-l_previousMillis >= servoDelay){
+        l_previousMillis = millis();
+        leftPos = (int) 600*sin(6.2821853*leftFreq*now/1000)+1500;
         leftServo.writeMicroseconds(leftPos);  // tell servo to go to position in variable 'pos'
     }
-    for (pos = 900; pos <= 2100; pos += 10)
-    { // goes from 0 degrees to 180 degrees
-        // in steps of 1 degree
-        
-        rightServo.writeMicroseconds(pos); // tell servo to go to position in variable 'pos'
-        delay(10);                         // waits 15ms for the servo to reach the position
+    now = millis();
+    if (now-r_previousMillis >= servoDelay){
+        r_previousMillis = millis();
+        rightPos = (int) 600*sin(6.2821853*rightFreq*now/1000)+1500;
+        rightServo.writeMicroseconds(rightPos);  // tell servo to go to position in variable 'pos'
     }
-    for (pos = 2100; pos >= 900; pos -= 10)
-    {                                      // goes from 180 degrees to 0 degrees
-        leftServo.writeMicroseconds(pos);  // tell servo to go to position in variable 'pos'
-        rightServo.writeMicroseconds(pos); // tell servo to go to position in variable 'pos'
-        delay(10);                         // waits 15ms for the servo to reach the position
-    }
+    
 
-    if (LFCserial.available() > 9) //虚拟串口的用法和默认串口的用法基本一样
+    if (LFCserial.available() > 8) //虚拟串口的用法和默认串口的用法基本一样
     {
         static char data, i;
-        for (i = 0; i < 10; i++)
+        for (i = 0; i < 9; i++)
         {
             data = LFCserial.read();
             receivedCommand[i] = data;

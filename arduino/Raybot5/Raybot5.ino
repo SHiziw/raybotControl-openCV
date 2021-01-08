@@ -20,16 +20,55 @@ Servo rightServo; // create servo object to control a servo
 // twelve servo objects can be created on most boards
 int pos = 0;                     // variable to store the servo position
 SoftwareSerial LFCserial(9, 10); //定义虚拟串口名为LFCserial,rx为9号端口,tx为10号端口
-char command;
+static unsigned char receivedCommand[9];
+float *p_encode;
 
 void handleSpeed(double command)
 {
-
 }
 
-void handleCommand(uint8_t command)
+void handleCommand()
 {
-    //und_PID.SetTunings(kp, ki, kd);
+    Serial.print("get: " + receivedCommand[0]);
+    switch (receivedCommand[0])
+    {
+    case 'p':
+    {
+        switch (receivedCommand[1])
+        {
+        case 'p':
+        {
+            kp = *p_encode; //该指针指向receivedCommand[2]
+            und_PID.SetTunings(kp, ki, kd);
+            break;
+        }
+        case 'i':
+        {
+            ki = *p_encode; //该指针指向receivedCommand[2]
+            und_PID.SetTunings(kp, ki, kd);
+            break;
+        }
+        case 'd':
+        {
+            kd = *p_encode; //该指针指向receivedCommand[2]
+            und_PID.SetTunings(kp, ki, kd);
+            break;
+        }
+
+        default:
+        {
+            //PID setting error!
+            break;
+        }
+        }
+        break;
+    }
+    default:
+    {
+        //unkown command.
+        break;
+    }
+    }
 }
 
 void setup()
@@ -42,17 +81,18 @@ void setup()
     Serial.begin(9600);    //初始化Arduino默认串口
 
     //initialize the variables we're linked to
-    Input = 10.0; //todo: setting input.
+    Input = 10.0;     //todo: setting input.
     Setpoint = 100.0; // todo :setting angle.
     und_PID.SetSampleTime(20);
 
     //turn the PID on
     und_PID.SetMode(AUTOMATIC);
+
+    p_encode = (float *)(receivedCommand + 2); //将unsigned char类型的指针转化成浮点数类型指针，使得储存的4个字节能解析为浮点数
 }
 
 void loop()
 {
-
 
     //print received data. Data was received in serialEvent;
     JY901.GetAngle();
@@ -76,10 +116,18 @@ void loop()
         delay(10);                         // waits 15ms for the servo to reach the position
     }
 
-    if (LFCserial.available()) //虚拟串口的用法和默认串口的用法基本一样
+    if (LFCserial.available() > 9) //虚拟串口的用法和默认串口的用法基本一样
     {
-        command = LFCserial.read();
-        Serial.print(command);
-        handleCommand(command);
+        static char data, i;
+        for (i = 0; i < 10; i++)
+        {
+            data = LFCserial.read();
+            receivedCommand[i] = data;
+        }
+        handleCommand();
+        while (LFCserial.available())
+        {
+            data = LFCserial.read();
+        }
     }
 }

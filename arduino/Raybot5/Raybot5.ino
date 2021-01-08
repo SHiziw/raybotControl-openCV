@@ -11,17 +11,24 @@ SCL <---> SCL
 //Define Variables we'll be connecting to
 double Setpoint, Input, Output;
 double kp, ki, kd;
+static unsigned char receivedCommand[9];
+float *p_encode;
 
 //Specify the links and initial tuning parameters
 PID und_PID(&Input, &Output, &Setpoint, 2, 5, 1, DIRECT);
 
 Servo leftServo;  // create servo object to control a servo
-Servo rightServo; // create servo object to control a servo
-// twelve servo objects can be created on most boards
-int pos = 0;                     // variable to store the servo position
+Servo rightServo; // twelve servo objects can be created on most boards
 SoftwareSerial LFCserial(9, 10); //定义虚拟串口名为LFCserial,rx为9号端口,tx为10号端口
-static unsigned char receivedCommand[9];
-float *p_encode;
+
+int leftPos = 0;                     // variable to store the left servo position, expressed by microseconds. 
+int rightPos = 0;                     // variable to store the rihgt servo position, expressed by microseconds. 
+int leftSGap = 10;                   //each step positon change messured in microseconds.
+int rightGap = 10;
+unsigned long l_previousMillis = 0; 
+unsigned long r_previousMillis = 0; 
+unsigned long now = 0;
+unsigned long servoDelay = 10;
 
 void handleSpeed(double command)
 {
@@ -102,10 +109,21 @@ void loop()
     und_PID.Compute();
     handleSpeed(Output);
 
+    now = millis();
+    if (now-l_previousMillis > servoDelay){
+        if (leftPos > 2100){
+                
+        }
+        if (leftPos < 900){
+            
+        }
+        leftPos += leftSGap;
+        leftServo.writeMicroseconds(leftPos);  // tell servo to go to position in variable 'pos'
+    }
     for (pos = 900; pos <= 2100; pos += 10)
     { // goes from 0 degrees to 180 degrees
         // in steps of 1 degree
-        leftServo.writeMicroseconds(pos);  // tell servo to go to position in variable 'pos'
+        
         rightServo.writeMicroseconds(pos); // tell servo to go to position in variable 'pos'
         delay(10);                         // waits 15ms for the servo to reach the position
     }

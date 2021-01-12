@@ -3,5 +3,5 @@
     "board": "Seeeduino:samd:seeed_XIAO_m0",
     "configuration": "usbstack=arduino,debug=off",
     "programmer": "AVRISP mkII",
-    "sketch": "test_LFC\\test_LFC.ino"
+    "sketch": "test_JY901IIC.ino"
 }

@@ -3,12 +3,12 @@
         {
             "name": "Win32",
             "includePath": [
-                "C:\\Users\\yql33\\AppData\\Local\\Arduino15\\packages\\Seeeduino\\tools\\**",
-                "C:\\Users\\yql33\\AppData\\Local\\Arduino15\\packages\\Seeeduino\\hardware\\samd\\1.8.1\\**",
                 "C:\\Users\\yql33\\AppData\\Local\\Arduino15\\packages\\arduino\\tools\\**",
+                "C:\\Users\\yql33\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.3\\**",
+                "C:\\Users\\yql33\\AppData\\Local\\Arduino15\\packages\\Seeeduino\\tools\\**",
                 "C:\\Users\\yql33\\Documents\\Arduino\\libraries\\**",
                 "D:\\Program Files (x86)\\Arduino\\libraries\\**",
-                "C:\\Users\\yql33\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.3\\**"
+                "C:\\Users\\yql33\\AppData\\Local\\Arduino15\\packages\\Seeeduino\\hardware\\samd\\1.8.1\\**"
             ],
             "forcedInclude": [
                 "C:\\Users\\yql33\\AppData\\Local\\Arduino15\\packages\\Seeeduino\\hardware\\samd\\1.8.1\\cores\\arduino\\Arduino.h"

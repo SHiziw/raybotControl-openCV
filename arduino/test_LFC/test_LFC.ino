@@ -1,5 +1,5 @@
 #include <SoftwareSerial.h>
-SoftwareSerial LFCserial(9, 10); //定义虚拟串口名为LFCserial,rx为9号端口,tx为10号端口
+SoftwareSerial LFCserial(7, 6); //定义虚拟串口名为LFCserial,rx为7号端口,tx为6号端口
 void setup()
 {
   LFCserial.begin(9600); //初始化虚拟串口

@@ -15,8 +15,9 @@ void setup()
 void loop() 
 {
   //print received data. Data was received in serialEvent;
-  JY901.GetAngle();
+ JY901.GetAngle();
  Serial.println((float)JY901.stcAngle.Angle[2]/32768*180);
+ 
 
   delay(10);
 }

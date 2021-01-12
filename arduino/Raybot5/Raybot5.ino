@@ -99,8 +99,8 @@ void setup()
 {
     Serial.begin(9600);
     JY901.StartIIC();
-    leftServo.attach(5);   // attaches the servo on pin D5 to the left servo object
-    rightServo.attach(6);  // attaches the servo on pin D6 to the right servo object
+    leftServo.attach(9);   // attaches the servo on pin D9 to the left servo object
+    rightServo.attach(10);  // attaches the servo on pin D10 to the right servo object
     LFCserial.begin(9600); //初始化虚拟串口
     Serial.begin(9600);    //初始化Arduino默认串口
 
@@ -135,7 +135,7 @@ void loop()
     now = millis();
     if (now-r_previousMillis >= servoDelay){
         r_previousMillis = millis();
-        rightPos = (int) 600*sin(6.2821853*rightFreq*now/1000)+1500;
+        rightPos = (int) -600*sin(6.2821853*rightFreq*now/1000)+1500;
         rightServo.writeMicroseconds(rightPos);  // tell servo to go to position in variable 'pos'
     }
     

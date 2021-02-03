@@ -2,7 +2,7 @@
 #include <JY901.h>
 #include <Servo.h>
 #include <SoftwareSerial.h>
-#include <PID_v1.h>
+#include <PID_v2.h>
 
 /*
 JY901    UnoR3
@@ -18,18 +18,20 @@ float *p_encode;
 
 //Specify the links and initial tuning parameters
 PID und_PID(&Input, &Output, &Setpoint, 2, 5, 1, DIRECT);
-Servo leftServo;  // create servo object to control a servo
-Servo rightServo; // twelve servo objects can be created on most boards
-SoftwareSerial LFCserial(7,6); //定义虚拟串口名为LFCserial,rx为7号端口,tx为6号端口
+Servo leftServo;                // create servo object to control a servo
+Servo rightServo;               // twelve servo objects can be created on most boards
+SoftwareSerial LFCserial(7, 6); //定义虚拟串口名为LFCserial,rx为7号端口,tx为6号端口
 
-int leftPos = 0;                     // variable to store the left servo position, expressed by microseconds. 
-int rightPos = 0;                     // variable to store the rihgt servo position, expressed by microseconds. 
-float leftFreq = 2.0;                   //angular velocity, Hz
-float rightFreq = 2.0;
+int leftPos = 0;      // variable to store the left servo position, expressed by microseconds.
+int rightPos = 0;     // variable to store the rihgt servo position, expressed by microseconds.
+float leftFreq = 0.0; //angular velocity, Hz
+float rightFreq = 0.0;
 float phaseL;
 float phaseR;
-unsigned long l_previousMillis = 0; 
-unsigned long r_previousMillis = 0; 
+float finsSup = 2100.0;
+float finsInf = 900.0;
+unsigned long l_previousMillis = 0;
+unsigned long r_previousMillis = 0;
 unsigned long now = 0;
 unsigned long servoDelay = 10;
 
@@ -42,23 +44,23 @@ void handleCommand()
     Serial.print("get: " + receivedCommand[0]);
     switch (receivedCommand[0])
     {
-    case 'P':
+    case 'P': //command[0]
     {
         switch (receivedCommand[1])
         {
-        case 'P':
+        case 'P': //command[1]
         {
             kp = *p_encode; //该指针指向receivedCommand[2]
             und_PID.SetTunings(kp, ki, kd);
             break;
         }
-        case 'I':
+        case 'I': //command[1]
         {
             ki = *p_encode; //该指针指向receivedCommand[2]
             und_PID.SetTunings(kp, ki, kd);
             break;
         }
-        case 'D':
+        case 'D': //command[1]
         {
             kd = *p_encode; //该指针指向receivedCommand[2]
             und_PID.SetTunings(kp, ki, kd);
@@ -73,11 +75,11 @@ void handleCommand()
         }
         break;
     }
-    case 'M':
+    case 'M': //command[0]
     {
         switch (receivedCommand[1])
         {
-        case 'F':
+        case 'F': //command[1]
         {
             leftFreq = *p_encode; //该指针指向receivedCommand[2]
             rightFreq = *p_encode;
@@ -86,19 +88,29 @@ void handleCommand()
             Setpoint = (float)JY901.stcAngle.Angle[2] / 32768 * 180;
             break;
         }
-        case 'L':
+        case 'R': //command[1]
         {
-            leftFreq = 0;
+            //leftFreq = 0;
             rightFreq = *p_encode;
             break;
         }
-        case 'R':
+        case 'L': //command[1]
         {
-           leftFreq = *p_encode; //该指针指向receivedCommand[2]
-            rightFreq = 0;
+            leftFreq = *p_encode; //该指针指向receivedCommand[2]
+            //rightFreq = 0;
             break;
         }
+        case 'U': //command[1] 波幅上确界
+        {
+            finsSup = *p_encode; //该指针指向receivedCommand[2]
+            break;
+        }
+        case 'D': //command[1] 波幅下确界
+        {
+            finsInf = *p_encode; //该指针指向receivedCommand[2]
 
+            break;
+        }
         default:
         {
             //PID setting error!
@@ -107,7 +119,8 @@ void handleCommand()
         }
         break;
     }
-    case 'S':{
+    case 'S':
+    { //command[0]
         leftFreq = 0;
         rightFreq = 0;
         usePID = 0;
@@ -148,7 +161,7 @@ void setup()
 
     JY901.StartIIC();
     leftServo.attach(9);   // attaches the servo on pin D9 to the left servo object
-    rightServo.attach(10);  // attaches the servo on pin D10 to the right servo object
+    rightServo.attach(10); // attaches the servo on pin D10 to the right servo object
     LFCserial.begin(9600); //初始化虚拟串口
     Serial.begin(9600);    //初始化Arduino默认串口
     //initialize the variables we're linked to
@@ -171,30 +184,32 @@ void loop()
     Serial.println(angleZ);
     */
 
-    if (usePID){
+    if (usePID)
+    {
         JY901.GetAngle();
         Input = (float)JY901.stcAngle.Angle[2] / 32768 * 180;
         und_PID.Compute();
         handleSpeed(Output);
     }
-    
+
     now = millis();
-    if (now-l_previousMillis >= servoDelay){
+    if (now - l_previousMillis >= servoDelay)
+    {
         l_previousMillis = millis();
-        phaseL += leftFreq*servoDelay/1000;
-        phaseL = phaseL - (int) phaseL;
-        leftPos = (int) 600*sin(6.2821853*phaseL)+1500;
-        leftServo.writeMicroseconds(leftPos);  // tell servo to go to position in variable 'pos'
+        phaseL += leftFreq * servoDelay / 1000;
+        phaseL = phaseL - (int)phaseL;
+        leftPos = (int) (finsSup-finsInf) * sin(6.2821853 * phaseL) + 0.5*(finsSup+finsInf);
+        leftServo.writeMicroseconds(leftPos); // tell servo to go to position in variable 'pos'
     }
     now = millis();
-    if (now-r_previousMillis >= servoDelay){
+    if (now - r_previousMillis >= servoDelay)
+    {
         r_previousMillis = millis();
-        phaseR += rightFreq*servoDelay/1000;
-        phaseR = phaseR - (int) phaseR;
-        rightPos = (int) -600*sin(6.2821853*phaseR)+1500;
-        rightServo.writeMicroseconds(rightPos);  // tell servo to go to position in variable 'pos'
+        phaseR += rightFreq * servoDelay / 1000;
+        phaseR = phaseR - (int)phaseR;
+        rightPos = (int) - (finsSup-finsInf) * sin(6.2821853 * phaseR) +3000 - 0.5*(finsSup+finsInf); //平衡位置与左边对称
+        rightServo.writeMicroseconds(rightPos); // tell servo to go to position in variable 'pos'
     }
-    
 
     if (LFCserial.available() > 8) //虚拟串口的用法和默认串口的用法基本一样
     {

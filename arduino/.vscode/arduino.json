@@ -1,0 +1,7 @@
+{
+    "port": "COM7",
+    "board": "Seeeduino:samd:seeed_XIAO_m0",
+    "configuration": "usbstack=arduino,debug=off",
+    "programmer": "AVRISP mkII",
+    "sketch": "test_LFC\\test_LFC.ino"
+}

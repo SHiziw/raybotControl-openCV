@@ -1,3 +1,6 @@
 /.vscode
 /__pycache__
 *.csv
+arduino.json
+c_cpp_properties.json
+arduino/Raybot5/.vscode/arduino.json

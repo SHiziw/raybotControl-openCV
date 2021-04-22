@@ -24,12 +24,12 @@ SoftwareSerial LFCserial(7, 6); //定义虚拟串口名为LFCserial,rx为7号端
 
 int leftPos = 0;      // variable to store the left servo position, expressed by microseconds.
 int rightPos = 0;     // variable to store the rihgt servo position, expressed by microseconds.
-float leftFreq = 0.0; //angular velocity, Hz
+float leftFreq = 0.0; // angular velocity, Hz
 float rightFreq = 0.0;
 float phaseL;
 float phaseR;
-float finsSup = 2100.0;
-float finsInf = 900.0;
+float finsSup = 2100.0; // 最大上限2100，最小下限900，平衡位置1500
+float finsInf = 900.0; // 最大上限2100，最小下限900，平衡位置1500
 unsigned long l_previousMillis = 0;
 unsigned long r_previousMillis = 0;
 unsigned long now = 0;
@@ -198,7 +198,7 @@ void loop()
         l_previousMillis = millis();
         phaseL += leftFreq * servoDelay / 1000;
         phaseL = phaseL - (int)phaseL;
-        leftPos = (int) (finsSup-finsInf) * sin(6.2821853 * phaseL) + 0.5*(finsSup+finsInf);
+        leftPos = (int)(finsSup - finsInf) * sin(6.2821853 * phaseL) + 0.5 * (finsSup + finsInf);
         leftServo.writeMicroseconds(leftPos); // tell servo to go to position in variable 'pos'
     }
     now = millis();
@@ -207,8 +207,8 @@ void loop()
         r_previousMillis = millis();
         phaseR += rightFreq * servoDelay / 1000;
         phaseR = phaseR - (int)phaseR;
-        rightPos = (int) - (finsSup-finsInf) * sin(6.2821853 * phaseR) +3000 - 0.5*(finsSup+finsInf); //平衡位置与左边对称
-        rightServo.writeMicroseconds(rightPos); // tell servo to go to position in variable 'pos'
+        rightPos = (int)-(finsSup - finsInf) * sin(6.2821853 * phaseR) + 3000 - 0.5 * (finsSup + finsInf); //平衡位置与左边对称
+        rightServo.writeMicroseconds(rightPos);                                                            // tell servo to go to position in variable 'pos'
     }
 
     if (LFCserial.available() > 8) //虚拟串口的用法和默认串口的用法基本一样

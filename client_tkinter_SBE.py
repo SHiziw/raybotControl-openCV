@@ -7,7 +7,7 @@
 #        M+L+[float],单独调整左频率
 #        M+R+[float],单独调整右频率
 #        M+U+[float],设置波幅的上确界
-#        M+R+[float],设置波幅的下确界
+#        M+D+[float],设置波幅的下确界
 # P部分： P+P+[float],比例增益
 #        P+I+[float],积分增益 
 #        P+D+[float],微分增益
@@ -26,7 +26,7 @@
 # notes           :
 # python_version  :3.8.3
 # ==============================================================================
-debug = False
+debug = True
 
 import tkinter as tk
 if not debug:
@@ -36,6 +36,15 @@ if not debug:
 def hit_me():
     if not debug:    
         ser.write("MF000F000".encode("UTF-8"))
+def method(event):
+    s = '右侧的取值为' + str(right_speed.get())
+    global r_command
+    #print("---------------------------")
+    r_command = str(right_speed.get())
+   # print(command)
+   # print("---------------------------")
+
+
 
 root= tk.Tk()
 root.title('RB3tcp控制端')
@@ -46,11 +55,26 @@ if not debug:
 
 botton_frame = tk.Frame(root)
 botton_frame.pack()
+left_frame = tk.Frame(root)
+left_frame.pack(side="left",fill='both',expand='yes')
+right_frame = tk.Frame(root)
+right_frame.pack(side="right",fill='both',expand='yes')
 
-botton_estabilish = tk.Button(botton_frame, text='建立连接', font=('黑体', 6), width=10, height=2, command=root.quit)
-botton_estabilish.pack(side="left")
+botton_estabilish = tk.Button(left_frame, text='退出系统', font=('黑体', 6), width=10, height=2, command=root.quit)
+botton_estabilish.pack()
+ 
+botton_send = tk.Button(right_frame, text='发送命令', font=('黑体', 6), width=10, height=2, command=hit_me)
+botton_send.pack()
 
-botton_send = tk.Button(botton_frame, text='发送命令', font=('黑体', 6), width=10, height=2, command=hit_me)
-botton_send.pack(side="right")
+
+right_speed=tk.DoubleVar()
+right_slider = tk.Scale(right_frame,orient=tk.HORIZONTAL,from_=-100,to=100,font=('黑体',6),resolution=1,variable=right_speed)
+right_slider.bind('<ButtonRelease-1>',method)
+right_slider.pack()
+
+
+
 
 root.mainloop()
+
+

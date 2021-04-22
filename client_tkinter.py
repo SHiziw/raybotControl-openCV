@@ -7,7 +7,7 @@
 #        M+L+[float],单独调整左频率
 #        M+R+[float],单独调整右频率
 #        M+U+[float],设置波幅的上确界
-#        M+R+[float],设置波幅的下确界
+#        M+D+[float],设置波幅的下确界
 # P部分： P+P+[float],比例增益
 #        P+I+[float],积分增益 
 #        P+D+[float],微分增益

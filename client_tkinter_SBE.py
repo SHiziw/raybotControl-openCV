@@ -38,6 +38,7 @@ fl = 2.0
 fr = 2.0
 fu = 2100.0
 fd =900.0
+tune_old = 1.0
 para_list = {"ML":fr,"MR":fl,"MU":fu,"MD":fd}
 
 def hit_me():
@@ -76,6 +77,16 @@ def end_method(event):
     print_selection(" ")
 def print_selection(v):
     l.config(text=v)
+    
+# ----循环器----
+def looper():
+    global tune_old
+    if fine_tuning.get() != tune_old:
+        tune_old = fine_tuning.get()
+        sender("ML",para_list["ML"]*float(fine_tuning.get()))
+        sender("MR",para_list["ML"]*(-float(fine_tuning.get()) + 2.0))
+    root.after(10,looper)   #10ms检查一次
+# ----循环器----
 
 root= tk.Tk()
 root.title('RB3tcp控制端')
@@ -119,6 +130,11 @@ right_key.place(relx=0.7, rely=0.45, anchor='center')
 l = tk.Label(left_frame, bg='yellow', width=20, text=' ',height = 2,wraplength=100)
 l.pack(side="top")
 
+fine_tuning=tk.DoubleVar()
+fine_tuning.set(1.0) 
+tuner1 = tk.Scale(left_frame,orient=tk.HORIZONTAL,from_=0.5,to=1.5,font=('黑体',6),resolution=0.01,length=100,variable=fine_tuning)
+#slider1.bind('<ButtonRelease-1>',lambda event:sync_method("ML",freq_left))
+tuner1.pack(side="top")
 #----左边-----
 
 #----右边-----
@@ -155,7 +171,7 @@ slider4.grid(row=3, column=1, padx=10, pady=5)
 #----右边-----
 
 
-
+looper()
 root.mainloop()
 
 

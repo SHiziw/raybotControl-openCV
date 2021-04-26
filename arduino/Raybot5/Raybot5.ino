@@ -41,7 +41,7 @@ void handleSpeed(double error)
 
 void handleCommand()
 {
-    Serial.print("get: " + receivedCommand[0]);
+    //Serial.println("get: " + char(receivedCommand[0]));
     switch (receivedCommand[0])
     {
     case 'P': //command[0]
@@ -163,7 +163,7 @@ void setup()
     leftServo.attach(9);   // attaches the servo on pin D9 to the left servo object
     rightServo.attach(10); // attaches the servo on pin D10 to the right servo object
     LFCserial.begin(9600); //初始化虚拟串口
-    Serial.begin(9600);    //初始化Arduino默认串口
+    //Serial.begin(9600);    //初始化Arduino默认串口
     //initialize the variables we're linked to
     Input = 10.0;     //todo: setting input.
     Setpoint = 100.0; // todo :setting angle.
@@ -211,18 +211,15 @@ void loop()
         rightServo.writeMicroseconds(rightPos);                                                            // tell servo to go to position in variable 'pos'
     }
 
-    if (LFCserial.available() > 8) //虚拟串口的用法和默认串口的用法基本一样
+    if (LFCserial.available()>5) //虚拟串口的用法和默认串口的用法基本一样
     {
-        static char data, i;
-        for (i = 0; i < 9; i++)
-        {
-            data = LFCserial.read();
-            receivedCommand[i] = data;
-        }
+        static int i;
+        i = LFCserial.readBytesUntil('X',receivedCommand,6);
+        if (i=6){
         handleCommand();
-        while (LFCserial.available())
-        {
-            data = LFCserial.read();
         }
+        
+
     }
+ delay(1);
 }

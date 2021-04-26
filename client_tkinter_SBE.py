@@ -4,13 +4,13 @@
 # A部分：A+[...]
 # M部分：M+[F/B]+[000]+[F/B]+[000]，分别表示左边的前进/后退+速度，右边的前进/后退+速度
 #        对于TSF，M+F+[float],浮点数为两侧波动频率
-#        M+L+[float],单独调整左频率
-#        M+R+[float],单独调整右频率
-#        M+U+[float],设置波幅的上确界
-#        M+D+[float],设置波幅的下确界
-# P部分： P+P+[float],比例增益
-#        P+I+[float],积分增益 
-#        P+D+[float],微分增益
+#        M+L+[float],单独调整左频率,后接终止符X
+#        M+R+[float],单独调整右频率,后接终止符X
+#        M+U+[float],设置波幅的上确界,后接终止符X
+#        M+D+[float],设置波幅的下确界,后接终止符X
+# P部分： P+P+[float],比例增益,后接终止符X
+#        P+I+[float],积分增益 ,后接终止符X
+#        P+D+[float],微分增益,后接终止符X
 #C部分：C+[cmd]
 #       cmd列表：L陆地模式，W海洋模式，T原色摄像头 C滤色后摄像头
 #Q部分：退出，断开tcp连接
@@ -26,9 +26,10 @@
 # notes           :
 # python_version  :3.8.3
 # ==============================================================================
-debug = True
+debug = False
 
 from struct import pack,unpack #用于编码浮点数为字节流
+import time
 import tkinter as tk
 if not debug:
     import serial
@@ -47,9 +48,10 @@ def hit_me():
         print_selection("全部命令已发送")
 
 def sender(header,var):
-    byte=header.encode("UTF-8") +pack('f',var)
+    byte=header.encode("UTF-8") +pack('f',var)+"X".encode("UTF-8")
     if not debug:    
         ser.write(byte)
+        time.sleep(0.02)
         ser.write(byte)
     return byte
 
@@ -86,7 +88,7 @@ def looper():
         print_selection("微调比例：{0}".format(tune_old))
         sender("ML",para_list["ML"]*float(fine_tuning.get()))
         sender("MR",para_list["ML"]*(-float(fine_tuning.get()) + 2.0))
-    root.after(10,looper)   #10ms检查一次
+    root.after(20,looper)   #10ms检查一次
 # ----循环器----
 
 root= tk.Tk()
@@ -108,22 +110,22 @@ botton_frame.pack(side="top")
 arrow_frame = tk.Frame(left_frame)
 arrow_frame.pack(side="bottom",fill='both',expand='yes')
 #顶部按钮
-botton_estabilish = tk.Button(botton_frame, text='退出系统', font=('黑体', 6), width=10, height=2, command=root.quit)
+botton_estabilish = tk.Button(botton_frame, text='退出系统', width=4, height=1, command=root.quit)
 botton_estabilish.pack(side="left")
-botton_send = tk.Button(botton_frame, text='发送命令', font=('黑体', 6), width=10, height=2, command=hit_me)
+botton_send = tk.Button(botton_frame, text='发送命令', width=4, height=1, command=hit_me)
 botton_send.pack(side="right")
 #方向键
-forward_key = tk.Button(arrow_frame, text='前进', font=('黑体', 6), width=10, height=5)
+forward_key = tk.Button(arrow_frame, text='前进', width=4, height=2)
 forward_key.bind('<Button-1>',forward_start_method)
 forward_key.bind('<ButtonRelease-1>',end_method)
 forward_key.place(relx=0.5, rely=0.2, anchor='center')
 
-left_key = tk.Button(arrow_frame, text='左转', font=('黑体', 6), width=10, height=5)
+left_key = tk.Button(arrow_frame, text='左转', width=4, height=2)
 left_key.bind('<Button-1>',lambda event:trun_method("MR",para_list["ML"]))
 left_key.bind('<ButtonRelease-1>',end_method)
 left_key.place(relx=0.3, rely=0.45, anchor='center')
 
-right_key = tk.Button(arrow_frame, text='右转', font=('黑体', 6), width=10, height=5)
+right_key = tk.Button(arrow_frame, text='右转', width=4, height=2)
 right_key.bind('<Button-1>',lambda event:trun_method("ML",para_list["MR"]))
 right_key.bind('<ButtonRelease-1>',end_method)
 right_key.place(relx=0.7, rely=0.45, anchor='center')
@@ -176,5 +178,5 @@ slider4.grid(row=3, column=1, padx=10, pady=5)
 
 looper()
 root.mainloop()
-
+root.destroy()
 

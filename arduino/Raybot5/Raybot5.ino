@@ -14,7 +14,7 @@ double Setpoint, Input, Output;
 float kp, ki, kd;
 static int usePID = 0;
 static unsigned char receivedCommand[9];
-float *p_encode;
+float f_data;
 
 //Specify the links and initial tuning parameters
 PID und_PID(&Input, &Output, &Setpoint, 2, 5, 1, DIRECT);
@@ -35,13 +35,32 @@ unsigned long r_previousMillis = 0;
 unsigned long now = 0;
 unsigned long servoDelay = 10;
 
+
+typedef union  
+{  
+    float fdata;  
+    unsigned long ldata;  
+}FloatLongType;  
+
+void Byte_to_Float(float *f,unsigned char byte[])  
+{  
+    FloatLongType fl;  
+    fl.ldata=0;  
+    fl.ldata=byte[3];  
+    fl.ldata=(fl.ldata<<8)|byte[2];  
+    fl.ldata=(fl.ldata<<8)|byte[1];  
+    fl.ldata=(fl.ldata<<8)|byte[0];  
+    *f=fl.fdata;  
+} 
+
 void handleSpeed(double error)
 {
 }
 
 void handleCommand()
 {
-    //Serial.println("get: " + char(receivedCommand[0]));
+    unsigned char b[4]={receivedCommand[2],receivedCommand[3],receivedCommand[4],receivedCommand[5]};
+    Byte_to_Float(&f_data,b);
     switch (receivedCommand[0])
     {
     case 'P': //command[0]
@@ -50,19 +69,19 @@ void handleCommand()
         {
         case 'P': //command[1]
         {
-            kp = *p_encode; //该指针指向receivedCommand[2]
+            kp = f_data; //该指针指向receivedCommand[2]
             und_PID.SetTunings(kp, ki, kd);
             break;
         }
         case 'I': //command[1]
         {
-            ki = *p_encode; //该指针指向receivedCommand[2]
+            ki = f_data; //该指针指向receivedCommand[2]
             und_PID.SetTunings(kp, ki, kd);
             break;
         }
         case 'D': //command[1]
         {
-            kd = *p_encode; //该指针指向receivedCommand[2]
+            kd = f_data; //该指针指向receivedCommand[2]
             und_PID.SetTunings(kp, ki, kd);
             break;
         }
@@ -81,8 +100,8 @@ void handleCommand()
         {
         case 'F': //command[1]
         {
-            leftFreq = *p_encode; //该指针指向receivedCommand[2]
-            rightFreq = *p_encode;
+            leftFreq = f_data; //该指针指向receivedCommand[2]
+            rightFreq = f_data;
             usePID = 1;
             JY901.GetAngle();
             Setpoint = (float)JY901.stcAngle.Angle[2] / 32768 * 180;
@@ -91,23 +110,23 @@ void handleCommand()
         case 'R': //command[1]
         {
             //leftFreq = 0;
-            rightFreq = *p_encode;
+            rightFreq = f_data;
             break;
         }
         case 'L': //command[1]
         {
-            leftFreq = *p_encode; //该指针指向receivedCommand[2]
+            leftFreq = f_data; //该指针指向receivedCommand[2]
             //rightFreq = 0;
             break;
         }
         case 'U': //command[1] 波幅上确界
         {
-            finsSup = *p_encode; //该指针指向receivedCommand[2]
+            finsSup = f_data; //该指针指向receivedCommand[2]
             break;
         }
         case 'D': //command[1] 波幅下确界
         {
-            finsInf = *p_encode; //该指针指向receivedCommand[2]
+            finsInf = f_data; //该指针指向receivedCommand[2]
 
             break;
         }
@@ -124,6 +143,8 @@ void handleCommand()
         leftFreq = 0;
         rightFreq = 0;
         usePID = 0;
+        leftServo.writeMicroseconds(1500);
+        rightServo.writeMicroseconds(1500);
         break;
     }
 
@@ -133,6 +154,8 @@ void handleCommand()
         leftFreq = 0;
         rightFreq = 0;
         usePID = 0;
+        leftServo.writeMicroseconds(1500);
+        rightServo.writeMicroseconds(1500);
         break;
     }
     }
@@ -172,7 +195,6 @@ void setup()
     //turn the PID on
     und_PID.SetMode(AUTOMATIC);
 
-    p_encode = (float *)(receivedCommand + 2); //将unsigned char类型的指针转化成浮点数类型指针，使得储存的4个字节能解析为浮点数
 }
 
 void loop()
@@ -221,5 +243,5 @@ void loop()
         
 
     }
- delay(1);
+ delay(5);
 }

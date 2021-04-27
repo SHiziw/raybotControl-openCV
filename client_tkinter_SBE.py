@@ -51,7 +51,7 @@ def sender(header,var):
     byte=header.encode("UTF-8") +pack('f',var)+"X".encode("UTF-8")
     if not debug:    
         ser.write(byte)
-        time.sleep(0.02)
+        time.sleep(0.1)
         ser.write(byte)
     return byte
 
@@ -74,8 +74,8 @@ def forward_start_method(event):
     sender("MR",para_list["MR"])
     print_selection("左频率：{0}，右频率：{1}".format(para_list["ML"],para_list["MR"]))
 def end_method(event):
-    sender("MR",0.0)
-    sender("ML",0.0)
+    sender("SR",0.0)
+    sender("SL",0.0)
     print_selection(" ")
 def print_selection(v):
     l.config(text=v)
